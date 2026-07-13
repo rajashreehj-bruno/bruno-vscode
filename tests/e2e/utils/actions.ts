@@ -378,7 +378,7 @@ export async function openCollectionSettings(
         const has = await buildCommonLocators(frame).collectionSettings.container().count();
         if (has > 0) { editor = frame; break; }
       } catch (err) {
-        console.debug('[e2e] frame detached during collection-settings lookup:', err);
+        console.debug('Frame detached during collection-settings lookup:', err);
       }
     }
     if (editor) break;

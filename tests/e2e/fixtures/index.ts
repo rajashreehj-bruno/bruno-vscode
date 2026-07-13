@@ -95,6 +95,8 @@ function launchVSCode(
     '--no-sandbox',
     '--disable-updates',
     '--disable-workspace-trust',
+    '--skip-welcome',
+    '--skip-release-notes',
     workspacePath,
   ];
 

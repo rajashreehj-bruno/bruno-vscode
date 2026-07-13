@@ -73,7 +73,7 @@ test.describe('Collection management', () => {
     await expect(responseBody).toBeVisible({ timeout: 10_000 });
   });
 
-  test('Collection settings Overview shows the correct request count (not 0) without reload', async ({ page, tmpDir }) => {
+  test('Collection settings Overview shows the correct request count', async ({ page, tmpDir }) => {
     // Import a fixture with a known request count (2 root requests + 1 request
     // inside a folder = 3) rather than creating requests through the UI.
     const sidebar = await openBrunoSidebar(page);
