@@ -1,5 +1,4 @@
 import { Page, Frame, expect } from '@playwright/test';
-import { buildCommonLocators } from './locators';
 
 /**
  * Find the webview Frame that contains actual Bruno app content.
@@ -347,46 +346,6 @@ export async function openRequest(
 
   if (!editor) throw new Error(`Request editor frame with #request-url not found within ${timeout}ms`);
   await expect(editor.locator('#request-url')).toBeVisible({ timeout: 10_000 });
-
-  return editor;
-}
-
-/**
- * Open the collection settings dashboard (Overview tab) by clicking the
- * collection's name in the sidebar. 
- *
- * @returns The collection-settings editor webview Frame.
- */
-export async function openCollectionSettings(
-  page: Page,
-  sidebar: Frame,
-  collectionName: string
-): Promise<Frame> {
-  const collectionName_ = buildCommonLocators(sidebar).sidebar.collectionName(collectionName);
-  await expect(collectionName_).toBeVisible({ timeout: 5_000 });
-  await collectionName_.click();
-
-  // Wait for the collection-settings frame to appear.
-  const timeout = 10_000;
-  const deadline = Date.now() + timeout;
-  let editor: Frame | undefined;
-
-  while (Date.now() < deadline) {
-    for (const frame of page.frames()) {
-      if (frame === sidebar || frame === page.mainFrame()) continue;
-      try {
-        const has = await buildCommonLocators(frame).collectionSettings.container().count();
-        if (has > 0) { editor = frame; break; }
-      } catch (err) {
-        console.debug('Frame detached during collection-settings lookup:', err);
-      }
-    }
-    if (editor) break;
-    await page.waitForTimeout(500);
-  }
-
-  if (!editor) throw new Error(`Collection settings frame not found within ${timeout}ms`);
-  await expect(buildCommonLocators(editor).collectionSettings.container()).toBeVisible({ timeout: 10_000 });
 
   return editor;
 }

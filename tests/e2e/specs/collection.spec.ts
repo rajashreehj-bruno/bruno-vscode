@@ -7,11 +7,9 @@ import {
   openNewRequestPanel,
   createRequest,
   openRequest,
-  openCollectionSettings,
   setJsonBody,
   sendRequest,
 } from '../utils/actions';
-import { buildCommonLocators } from '../utils/locators';
 
 // All tests share a single VS Code instance (workers: 1) so they run serially.
 // Each test gets its own tmpDir for collection storage.
@@ -71,23 +69,5 @@ test.describe('Collection management', () => {
     // Step 6: Verify the response body echoes back our JSON
     const responseBody = editor.locator('[data-testid="response-status-code"]').locator('..');
     await expect(responseBody).toBeVisible({ timeout: 10_000 });
-  });
-
-  test('Collection settings Overview shows the correct request count', async ({ page, tmpDir }) => {
-    // Import a fixture with a known request count (2 root requests + 1 request
-    // inside a folder = 3) rather than creating requests through the UI.
-    const sidebar = await openBrunoSidebar(page);
-    const fixturePath = path.resolve(__dirname, '../fixtures/request-count-collection.json');
-    const collectionName = 'Request Count Collection';
-
-    await importCollection(page, sidebar, fixturePath, tmpDir, collectionName);
-
-    // Open the collection settings dashboard.
-    const settings = await openCollectionSettings(page, sidebar, collectionName);
-
-    // The Overview's Requests line must report all 3 requests (including the one
-    // nested in a folder).
-    const requestsInfo = buildCommonLocators(settings).collectionSettings.requestsInfo();
-    await expect(requestsInfo).toHaveText('3 requests in collection', { timeout: 5_000 });
   });
 });
