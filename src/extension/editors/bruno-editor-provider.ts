@@ -189,6 +189,16 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
 
         viewDataByWebview.set(webviewPanel.webview, viewData);
         stateManager.sendTo(webviewPanel.webview, 'main:set-view', viewData);
+
+        // Collection/folder settings dashboards need the full request tree (e.g.
+        // the Overview shows request counts). The single-request open above only
+        // loaded the clicked root file, so this webview's store has items: [] and
+        // would show "0 requests". Stream the rest of the tree to this webview.
+        // Unlike the shared watcher scan, loadFullCollection targets this webview
+        // and has no already-scanned guard, so it works regardless of prior opens.
+        if (!isVariablesMode && (isCollectionFile || isFolderFile)) {
+          await collectionWatcher.loadFullCollection(collectionRoot, collectionUid, webviewSender);
+        }
       }
     } catch (error) {
       console.error('BrunoEditorProvider: Error opening collection:', error);

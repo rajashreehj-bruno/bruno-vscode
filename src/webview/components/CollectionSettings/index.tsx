@@ -96,7 +96,7 @@ const CollectionSettings = ({
   };
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-hidden">
+    <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-hidden" data-testid="collection-settings">
       <div className="flex flex-wrap items-center tabs" role="tablist">
         <div className={getTabClassname('overview')} role="tab" onClick={() => setTab('overview')}>
           Overview
