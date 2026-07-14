@@ -10,9 +10,8 @@ export type FrameLike = Frame | Page;
 
 export const buildCommonLocators = (frame: FrameLike) => ({
   sidebar: {
-    // The sidebar renders `#sidebar-collection-name` for each collection.
     collectionName: (name: string) =>
-      frame.locator('#sidebar-collection-name').filter({ hasText: name })
+      frame.locator('[data-testid="sidebar-collection-row"]').filter({ hasText: name })
   },
   collectionSettings: {
     container: () => frame.getByTestId('collection-settings'),

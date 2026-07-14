@@ -54,7 +54,6 @@ test.describe('Collection overview', () => {
 
     await importCollection(page, sidebar, fixturePath, tmpDir, collectionName);
 
-    // Open the collection settings dashboard.
     const settings = await openCollectionSettings(page, sidebar, collectionName);
 
     // The Overview's Requests line must report all 3 requests (including the one
