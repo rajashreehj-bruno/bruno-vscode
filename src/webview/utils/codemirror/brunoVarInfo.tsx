@@ -265,8 +265,8 @@ export const renderVarInfo = (token: any, options: any) => {
     }
   }
 
-  // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, path, and undefined variables cannot be edited)
-  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'path' || scopeInfo.type === 'undefined';
+  // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be edited)
+  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined';
 
   const rawValue = scopeInfo.value || '';
 

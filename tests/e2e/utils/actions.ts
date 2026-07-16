@@ -615,6 +615,20 @@ export async function pasteIntoCollection(sidebar: Frame, collectionName: string
 }
 
 /**
+ * Select a tab in the request editor's request pane (e.g. "Params", "Body", "Headers").
+ *
+ * @param editor - The request editor's webview Frame
+ * @param tabName - Visible label of the tab to select
+ */
+export async function openRequestPaneTab(editor: Frame, tabName: string): Promise<void> {
+  await editor
+    .locator('[role="tab"]')
+    .filter({ hasText: tabName })
+    .first()
+    .click();
+}
+
+/**
  * Run a VS Code command via the Command Palette.
  */
 export async function runCommand(page: Page, command: string): Promise<void> {

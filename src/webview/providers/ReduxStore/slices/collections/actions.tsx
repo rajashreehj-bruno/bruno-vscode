@@ -176,7 +176,8 @@ import {
   addFolderVar,
   updateFolderVar,
   addCollectionVar,
-  updateCollectionVar
+  updateCollectionVar,
+  updatePathParam
 } from './index';
 
 import { each } from 'lodash';
@@ -2217,6 +2218,35 @@ export const updateVariableInScope = (variableName: any, newValue: any, scopeInf
             .then(() => {
               toast.success(`Variable "${variableName}" updated`);
             })
+            .then(resolve)
+            .catch(reject);
+        }
+
+        case 'path': {
+          const { item } = data;
+
+          if (!item) {
+            return reject(new Error('Request item not found'));
+          }
+
+          const requestItem = findItemInCollection(collection, item.uid);
+          if (!requestItem) {
+            return reject(new Error('Request item not found'));
+          }
+
+          const params = get(requestItem, 'draft.request.params') || get(requestItem, 'request.params') || [];
+          const pathParam = params.find((p: any) => p.type === 'path' && p.name === variableName);
+          if (!pathParam) {
+            return reject(new Error('Path parameter not found'));
+          }
+
+          dispatch(updatePathParam({
+            collectionUid,
+            itemUid: item.uid,
+            pathParam: { uid: pathParam.uid, name: pathParam.name, value: newValue }
+          }));
+
+          return dispatch(saveRequest(item.uid, collectionUid, true))
             .then(resolve)
             .catch(reject);
         }
