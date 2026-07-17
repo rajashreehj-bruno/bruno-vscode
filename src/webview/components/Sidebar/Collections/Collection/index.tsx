@@ -312,6 +312,12 @@ const Collection = ({ collection, searchText }: CollectionProps) => {
 
   const newRequestMenuRef = useRef<any>(null);
 
+  // The menu is memoized on collection.uid, so its onClicks would capture a
+  // stale collection. Read the latest via a ref so "Untitled N" numbering
+  // reflects the current items.
+  const latestCollectionRef = useRef(collection);
+  latestCollectionRef.current = collection;
+
   const openTransientRequest = (item: any) => {
     dispatch(addTransientRequest({ collectionUid: collection.uid, item }));
     ipcRenderer.send('sidebar:open-transient-request', {
@@ -328,25 +334,25 @@ const Collection = ({ collection, searchText }: CollectionProps) => {
       id: 'new-http',
       leftSection: IconApi,
       label: 'HTTP',
-      onClick: () => openTransientRequest(transientManager.createHttpRequest(collection))
+      onClick: () => openTransientRequest(transientManager.createHttpRequest(latestCollectionRef.current))
     },
     {
       id: 'new-graphql',
       leftSection: IconBrandGraphql,
       label: 'GraphQL',
-      onClick: () => openTransientRequest(transientManager.createGraphQLRequest(collection))
+      onClick: () => openTransientRequest(transientManager.createGraphQLRequest(latestCollectionRef.current))
     },
     {
       id: 'new-grpc',
       leftSection: IconNetwork,
       label: 'gRPC',
-      onClick: () => openTransientRequest(transientManager.createGrpcRequest(collection))
+      onClick: () => openTransientRequest(transientManager.createGrpcRequest(latestCollectionRef.current))
     },
     {
       id: 'new-ws',
       leftSection: IconPlugConnected,
       label: 'WebSocket',
-      onClick: () => openTransientRequest(transientManager.createWebSocketRequest(collection))
+      onClick: () => openTransientRequest(transientManager.createWebSocketRequest(latestCollectionRef.current))
     }
   ], [collection.uid]);
 

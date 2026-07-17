@@ -863,6 +863,10 @@ export const isItemAnApp = (item: AppItem): boolean => {
   return item.type === 'app';
 };
 
+export const isItemTransientRequest = (item: AppItem): boolean => {
+  return isItemARequest(item) && !!(item as any)?.isTransient;
+};
+
 export const humanizeRequestBodyMode = (mode: string | null | undefined): string => {
   let label = 'No Body';
   switch (mode) {

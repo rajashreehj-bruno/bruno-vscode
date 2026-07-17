@@ -100,13 +100,16 @@ export async function openTransientRequestPanel(
       return;
     }
 
+    // Remove the transient from all stores on close so its "Untitled N" number
+    // is freed right away. Item data is kept during the grace window for Undo.
+    stateManager.broadcast('main:transient-request-closed', { collectionUid, itemUid });
+
     const GRACE_MS = 10_000;
 
     const timer = setTimeout(() => {
       stateManager.removeWebview(panel.webview);
       transientPanels.delete(itemUid);
       transientItems.delete(itemUid);
-      stateManager.broadcast('main:transient-request-closed', { collectionUid, itemUid });
     }, GRACE_MS);
 
     vscode.window.showInformationMessage(
@@ -151,7 +154,10 @@ export async function openTransientRequestPanel(
 
     const item = transientItems.get(itemUid);
     if (item) {
-      stateManager.sendTo(panel.webview, 'main:add-transient-request', {
+      // Broadcast so the sidebar store also tracks the transient (keeps
+      // "Untitled N" numbering right and restores it on Undo). The add is
+      // idempotent, so it's safe even though the sidebar already added it.
+      stateManager.broadcast('main:add-transient-request', {
         collectionUid,
         item
       });
@@ -249,7 +255,7 @@ export async function openTransientRequestPanel(
         }
         // Handle save transient request — args[0] is the serialized item data
         if (channel === 'transient:save-request' && args?.[0]) {
-          await saveTransientRequest(panel, itemUid, collectionPath, args[0] as Record<string, unknown>);
+          await saveTransientRequest(panel, itemUid, collectionUid, collectionPath, args[0] as Record<string, unknown>);
         }
         if (channel === 'transient:item-updated' && args?.[0]) {
           const { itemUid: updatedUid, item } = args[0] as { itemUid: string; item: Record<string, unknown> };
@@ -291,6 +297,7 @@ export function closeTransientPanel(itemUid: string): void {
 async function saveTransientRequest(
   panel: vscode.WebviewPanel,
   itemUid: string,
+  collectionUid: string,
   collectionPath: string,
   itemData: Record<string, unknown>
 ): Promise<void> {
@@ -325,6 +332,10 @@ async function saveTransientRequest(
     const { stringifyRequestViaWorker } = require('@usebruno/filestore');
     const content = await stringifyRequestViaWorker({ ...itemData, name, filename }, { format });
     fs.writeFileSync(fullPath, content, 'utf-8');
+
+    // Saved to disk — remove the in-memory transient from all stores now so its
+    // "Untitled N" number is freed.
+    stateManager.broadcast('main:transient-request-closed', { collectionUid, itemUid });
 
     savedPanels.add(itemUid);
     panel.dispose();

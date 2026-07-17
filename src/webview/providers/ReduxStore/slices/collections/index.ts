@@ -1582,7 +1582,11 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
         collection.items = collection.items || [];
-        collection.items.push(item);
+        // Guard against duplicates: the same transient can arrive from both the
+        // sidebar dispatch and the panel broadcast.
+        if (!collection.items.some((i: any) => i.uid === item.uid)) {
+          collection.items.push(item);
+        }
       }
     },
 

@@ -47,6 +47,22 @@ export const buildCommonLocators = (frame: FrameLike) => ({
         .locator('.CodeMirror-line')
         .first()
   },
+  // The "+" transient-request menu on a collection row.
+  newRequestMenu: {
+    addButton: (collectionName: string) =>
+      frame
+        .getByTestId('sidebar-collection-row')
+        .filter({ hasText: collectionName })
+        .getByTestId('collection-new-request'),
+    // Menu option by request type: http | graphql | grpc | ws.
+    option: (type: string) => frame.getByTestId(`collection-new-request-new-${type}`)
+  },
+  // VS Code editor tab (workbench, not a webview) — pass the page to the factory.
+  workbench: {
+    editorTab: (title: string) => frame.locator('.tabs-container .tab').filter({ hasText: title }),
+    editorTabClose: (title: string) =>
+      frame.locator('.tabs-container .tab').filter({ hasText: title }).locator('.action-label.codicon-close')
+  },
   // New Request panel form.
   newRequest: {
     typeOption: (type: string) => frame.locator('.request-type-option').filter({ hasText: type }),

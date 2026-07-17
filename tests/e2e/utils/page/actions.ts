@@ -880,6 +880,32 @@ export async function deleteItem(
 }
 
 /**
+ * Create a transient (unsaved) request from the collection's "+" menu.
+ * Opens a WebviewPanel titled "Untitled N".
+ */
+export async function createTransientRequest(
+  sidebar: Frame,
+  collectionName: string,
+  type: 'http' | 'graphql' | 'grpc' | 'ws' = 'http'
+): Promise<void> {
+  const locators = buildCommonLocators(sidebar);
+  await locators.sidebar.collectionName(collectionName).hover();
+  await locators.newRequestMenu.addButton(collectionName).click();
+  await locators.newRequestMenu.option(type).click();
+}
+
+/**
+ * Close a VS Code editor tab by its title (clicks the tab's close button).
+ */
+export async function closeEditorTab(page: Page, title: string): Promise<void> {
+  const locators = buildCommonLocators(page);
+  const tab = locators.workbench.editorTab(title);
+  await tab.hover();
+  await locators.workbench.editorTabClose(title).click();
+  await expect(tab).toHaveCount(0, { timeout: 2_000 });
+}
+
+/**
  * Copy a request/folder to the in-app clipboard via its sidebar context menu.
  *
  * @param sidebar - The sidebar webview Frame
