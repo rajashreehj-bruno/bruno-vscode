@@ -566,11 +566,6 @@ export const renderVarInfo = (token: any, options: any) => {
       readOnlyNote.className = 'var-readonly-note';
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
-    } else if (scopeInfo.type === 'path') {
-      const readOnlyNote = document.createElement('div');
-      readOnlyNote.className = 'var-readonly-note';
-      readOnlyNote.textContent = 'Edit in Params tab';
-      into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'undefined') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';

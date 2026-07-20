@@ -32,11 +32,10 @@ export const buildCommonLocators = (frame: FrameLike) => ({
     editorLine: () => frame.locator('.CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-line').first()
   },
   paramsTable: {
-    // Value cell of the path table (Params renders query table then path table).
+    // Value cell of the path-params table.
     pathValueCell: () =>
       frame
-        .getByTestId('editable-table')
-        .nth(1)
+        .getByTestId('path-params-table')
         .getByTestId('column-value')
         .locator('.CodeMirror-line')
         .first()

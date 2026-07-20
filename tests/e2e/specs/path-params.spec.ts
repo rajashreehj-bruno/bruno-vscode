@@ -6,7 +6,7 @@ import {
   openNewRequestPanel,
   createRequest,
   openRequest,
-  openRequestPaneTab,
+  openRequestPaneTab
 } from '../utils/actions';
 import { buildCommonLocators } from '../utils/locators';
 
@@ -20,15 +20,15 @@ async function editPathParamViaPopover(
   const locators = buildCommonLocators(editor);
 
   const paramSpan = locators.requestUrl.pathParamToken(paramName);
-  await expect(paramSpan).toBeVisible({ timeout: 5000 });
+  await expect(paramSpan).toBeVisible({ timeout: 5_000 });
 
   // Retry the hover: move off the token first so a fresh mouseover fires.
   const popover = locators.varPopover.container();
   await expect(async () => {
     await locators.requestUrl.editor().hover({ position: { x: 2, y: 2 } });
     await paramSpan.hover();
-    await expect(popover).toBeVisible({ timeout: 1000 });
-  }).toPass({ timeout: 5000 });
+    await expect(popover).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 5_000 });
 
   const editableDisplay = locators.varPopover.editableDisplay();
   await expect(editableDisplay).toBeVisible({ timeout: 5_000 });
@@ -85,6 +85,6 @@ test.describe('Path parameters', () => {
     await expect(async () => {
       const value = await getPathParamTableValue(editor);
       expect(value).toBe(paramValue);
-    }).toPass({ timeout: 5000 });
+    }).toPass({ timeout: 5_000 });
   });
 });

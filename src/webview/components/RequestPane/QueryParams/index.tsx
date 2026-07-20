@@ -188,6 +188,7 @@ const QueryParams = ({
         </div>
         {pathParams && pathParams.length > 0 ? (
           <EditableTable
+            testId="path-params-table"
             columns={pathColumns}
             rows={pathParams}
             onChange={() => {}}
