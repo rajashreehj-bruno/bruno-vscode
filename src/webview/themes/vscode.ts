@@ -287,8 +287,6 @@ export const createVSCodeTheme = (mode: 'light' | 'dark') => {
       },
       collection: {
         item: {
-          // Active/selected item — use VS Code's list selection colors so it's
-          // distinguishable from the sidebar background (was sidebarBg = invisible).
           bg: colors.listActiveBg,
           activeColor: colors.listActiveFg,
           hoverBg: colors.listHoverBg,
