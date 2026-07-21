@@ -19,6 +19,7 @@ import {
   hasHandler
 } from '../ipc/handlers';
 import { openCollection, loadCollectionMetadata, setMessageSender as setCollectionsMessageSender } from '../app/collections';
+import { notifyActiveItemToSidebar } from '../ipc/collection';
 import { setMessageSender as setWatcherMessageSender } from '../app/collection-watcher';
 import collectionWatcher from '../app/collection-watcher';
 import { AppItem } from '@bruno-types';
@@ -78,9 +79,11 @@ export async function openTransientRequestPanel(
   stateManager.addWebview(panel.webview);
   stateManager.setActiveEditorWebview(panel.webview);
 
+  notifyActiveItemToSidebar(itemUid);
   panel.onDidChangeViewState((e) => {
     if (e.webviewPanel.active) {
       stateManager.setActiveEditorWebview(panel.webview);
+      notifyActiveItemToSidebar(itemUid);
     }
   });
 

@@ -19,6 +19,7 @@ import { setMessageSender as setWatcherMessageSender } from '../app/collection-w
 import collectionWatcher from '../app/collection-watcher';
 import { defaultWorkspaceManager } from '../store/default-workspace';
 import { registerDocument, unregisterDocument } from './dirty-state-manager';
+import { notifyActiveItemToSidebar } from '../ipc/collection';
 
 interface IpcMessage {
   type: 'invoke' | 'send';
@@ -73,10 +74,25 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
 
     registerDocument(document);
 
+    const collectionRoot = findCollectionRoot(filePath);
+
+    // The sidebar item this editor represents, so the sidebar can highlight it
+    // (collection.bru → collection, folder.bru → folder, otherwise the request).
+    const editorFileName = path.basename(filePath);
+    const isCollectionRootFile = editorFileName === 'collection.bru' || editorFileName === 'opencollection.yml';
+    const isFolderRootFile = editorFileName === 'folder.bru' || editorFileName === 'folder.yml';
+    const activeItemUid = collectionRoot && isCollectionRootFile
+      ? generateUidBasedOnHash(collectionRoot)
+      : isFolderRootFile
+        ? generateUidBasedOnHash(path.dirname(filePath))
+        : generateUidBasedOnHash(filePath);
+
     stateManager.setActiveEditorWebview(webviewPanel.webview);
+    notifyActiveItemToSidebar(activeItemUid);
     webviewPanel.onDidChangeViewState((e) => {
       if (e.webviewPanel.active) {
         stateManager.setActiveEditorWebview(webviewPanel.webview);
+        notifyActiveItemToSidebar(activeItemUid);
       }
     });
 
@@ -85,8 +101,6 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
       unregisterDocument(document.uri.fsPath);
       viewDataByWebview.delete(webviewPanel.webview);
     });
-
-    const collectionRoot = findCollectionRoot(filePath);
 
     const pendingVariables = pendingVariablesModeRequests.get(filePath);
     if (pendingVariables) {

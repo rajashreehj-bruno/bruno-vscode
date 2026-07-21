@@ -84,6 +84,15 @@ export function setSidebarWebviewGetter(getter: () => vscode.Webview | undefined
   sidebarWebviewGetter = getter;
 }
 
+// Tell the sidebar which item (request/folder/collection) is open in the active
+// editor, so it can highlight the matching row. Pass null to clear.
+export function notifyActiveItemToSidebar(itemUid: string | null): void {
+  const sidebar = sidebarWebviewGetter?.();
+  if (sidebar) {
+    stateManager.sendTo(sidebar, 'main:set-active-item', itemUid);
+  }
+}
+
 interface Environment {
   name: string;
   variables: Array<{ name: string; value: string; secret?: boolean; uid?: string }>;

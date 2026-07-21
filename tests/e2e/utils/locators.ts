@@ -7,7 +7,10 @@ export type FrameLike = Frame | Page;
 export const buildCommonLocators = (frame: FrameLike) => ({
   sidebar: {
     collectionName: (name: string) =>
-      frame.getByTestId('sidebar-collection-row').filter({ hasText: name })
+      frame.getByTestId('sidebar-collection-row').filter({ hasText: name }),
+    // A request/folder row in the collection tree.
+    itemRow: (name: string) =>
+      frame.getByTestId('sidebar-collection-item-row').filter({ hasText: name })
   },
   collectionSettings: {
     container: () => frame.getByTestId('collection-settings'),
