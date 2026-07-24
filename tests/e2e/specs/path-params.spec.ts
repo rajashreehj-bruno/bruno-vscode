@@ -6,7 +6,8 @@ import {
   openNewRequestPanel,
   createRequest,
   openRequest,
-  openRequestPaneTab
+  openRequestPaneTab,
+  runCommand
 } from '../utils/actions';
 import { buildCommonLocators } from '../utils/locators';
 
@@ -80,10 +81,23 @@ test.describe('Path parameters', () => {
 
     await editPathParamViaPopover(page, editor, 'userId', paramValue);
 
-    // Edited value must propagate to the Params -> Path table.
+    // Edited value must propagate to the Params -> Path table (in-memory store).
     await openRequestPaneTab(editor, 'Params');
     await expect(async () => {
       const value = await getPathParamTableValue(editor);
+      expect(value).toBe(paramValue);
+    }).toPass({ timeout: 5_000 });
+
+    // Persistence: save to disk, close the tab, then reopen from a fresh editor and
+    // confirm the edited value survives.
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await page.keyboard.press(`${modifier}+s`);
+    await runCommand(page, 'View: Close Editor');
+
+    const reopened = await openRequest(page, sidebar, collectionName, requestName);
+    await openRequestPaneTab(reopened, 'Params');
+    await expect(async () => {
+      const value = await getPathParamTableValue(reopened);
       expect(value).toBe(paramValue);
     }).toPass({ timeout: 5_000 });
   });
