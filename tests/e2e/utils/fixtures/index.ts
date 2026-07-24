@@ -6,7 +6,8 @@ import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const EXTENSION_ROOT = path.resolve(__dirname, '../../..');
+// This file lives at tests/e2e/utils/fixtures/, so climb four levels to the repo root.
+const EXTENSION_ROOT = path.resolve(__dirname, '../../../..');
 
 export interface VSCodeFixture {
   /** The VS Code workbench page — use this to interact with the UI */

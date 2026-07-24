@@ -230,7 +230,8 @@ const executeRequest = async (
       folderVariables: context.folderVariables,
       requestVariables: context.requestVariables,
       runtimeVariables: context.runtimeVariables,
-      processEnvVars: context.processEnvVars
+      processEnvVars: context.processEnvVars,
+      promptVariables: (request.promptVariables || {}) as Record<string, string>
     }) as unknown as BrunoRequest;
 
     const headers = interpolatedRequest.headers;
@@ -729,7 +730,8 @@ const prepareItemRequest = (item: unknown, collection: unknown): BrunoRequest =>
     collectionVariables,
     folderVariables,
     requestVariables,
-    globalEnvironmentVariables
+    globalEnvironmentVariables,
+    promptVariables: (_collection.promptVariables || {}) as Record<string, unknown>
   };
 };
 

@@ -172,7 +172,8 @@ const prepareWsRequest = async (
     collectionVariables: request.collectionVariables,
     folderVariables: request.folderVariables,
     requestVariables: request.requestVariables,
-    globalEnvironmentVariables: request.globalEnvironmentVariables
+    globalEnvironmentVariables: request.globalEnvironmentVariables,
+    promptVariables: ((collection as any)?.promptVariables || {}) as Record<string, string>
   });
 
   return wsRequest;

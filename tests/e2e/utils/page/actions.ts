@@ -1,4 +1,5 @@
-import { Page, Frame, expect } from '@playwright/test';
+import { Page, Frame, Locator, expect } from '@playwright/test';
+import { buildCommonLocators } from './locators';
 
 /**
  * Find the webview Frame that contains actual Bruno app content.
@@ -285,6 +286,235 @@ export async function createRequest(
 }
 
 /**
+ * Create a request of the given type via the New Request panel (no fixtures).
+ * The URL editor doesn't auto-close brackets, so `{{?prompt}}` types cleanly.
+ */
+export async function createRequestByType(
+  page: Page,
+  sidebar: Frame,
+  collectionName: string,
+  opts: { name: string; url: string; type?: 'HTTP' | 'GraphQL' | 'WebSocket' | 'gRPC'; method?: string }
+): Promise<void> {
+  const { name, url, type = 'HTTP', method } = opts;
+  const editor = await openNewRequestPanel(page, sidebar, collectionName);
+  const form = buildCommonLocators(editor).newRequest;
+
+  // HTTP is the default type.
+  if (type !== 'HTTP') {
+    await form.typeOption(type).click();
+  }
+
+  // Only HTTP/GraphQL expose a method selector; GraphQL defaults to GET, so set it if asked.
+  if (method && (type === 'HTTP' || type === 'GraphQL')) {
+    await form.methodSelector().click();
+    await form.methodOption(method.toUpperCase()).click();
+  }
+
+  await form.nameInput().fill(name);
+
+  const urlEditor = form.urlEditor();
+  await urlEditor.click();
+  await page.keyboard.type(url, { delay: 10 });
+
+  await form.submit().click();
+
+  await expandCollection(sidebar, collectionName);
+  await expect(buildCommonLocators(sidebar).sidebar.collectionItem(name)).toBeVisible({ timeout: 15_000 });
+}
+
+/**
+ * Set a CodeMirror field's value: clear it, then insert via a single input event
+ * (`keyboard.insertText`). Per-character typing would trip `autoCloseBrackets` in
+ * the JSON body / GraphQL editors and mangle `{{?prompt}}`; insertText lands verbatim.
+ */
+export async function setCodeMirrorValue(page: Page, cm: Locator, text: string): Promise<void> {
+  await expect(cm).toBeVisible({ timeout: 5_000 });
+  await cm.click();
+  const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+  await page.keyboard.press(`${modifier}+a`);
+  await page.keyboard.press('Backspace');
+  await page.keyboard.insertText(text);
+  // Blur to commit the onChange, then let it settle.
+  await page.keyboard.press('Tab');
+  await page.waitForTimeout(300);
+}
+
+/**
+ * Open a request-editor tab. Scoped by `role="tab"` since ResponsiveTabs renders a
+ * hidden measurement copy with the same class; narrow windows collapse trailing
+ * tabs (e.g. "Vars") into a `.more-tabs` overflow menu, so fall back to `label` there.
+ */
+const TAB_LABELS: Record<string, string> = {
+  params: 'Params',
+  body: 'Body',
+  headers: 'Headers',
+  auth: 'Auth',
+  vars: 'Vars'
+};
+
+export async function openRequestTab(
+  editor: Frame,
+  key: 'params' | 'body' | 'headers' | 'auth' | 'vars',
+  label?: string
+): Promise<void> {
+  const locators = buildCommonLocators(editor);
+  const tab = locators.tabs.byKey(key);
+  if (await tab.isVisible().catch(() => false)) {
+    await tab.click();
+    return;
+  }
+
+  // Tab is in the overflow menu (e.g. GraphQL's tab bar is narrower, so Headers/Auth
+  // spill over) — open it and pick by label. Fall back to the key's default label so
+  // callers don't have to pass one.
+  const menuLabel = label ?? TAB_LABELS[key];
+  const more = locators.tabs.more();
+  if (menuLabel && (await more.isVisible().catch(() => false))) {
+    await more.click();
+    const item = locators.dropdownItem(menuLabel);
+    await expect(item).toBeVisible({ timeout: 5_000 });
+    await item.click();
+    return;
+  }
+
+  await expect(tab).toBeVisible({ timeout: 10_000 });
+  await tab.click();
+}
+
+/**
+ * Add a header row (name + value) on the Headers tab. Capture the empty trailing
+ * row's index before filling — a fresh row auto-appends once the name is entered.
+ */
+export async function addRequestHeader(
+  page: Page,
+  editor: Frame,
+  name: string,
+  value: string
+): Promise<void> {
+  await openRequestTab(editor, 'headers');
+
+  const rows = buildCommonLocators(editor).editableTable.rows();
+  await expect(rows.first()).toBeVisible({ timeout: 10_000 });
+  const emptyRowIdx = (await rows.count()) - 1; // the trailing empty row
+  const row = buildCommonLocators(rows.nth(emptyRowIdx)).editableTable;
+
+  await setCodeMirrorValue(page, row.columnNameEditor(), name);
+  await setCodeMirrorValue(page, row.columnValueEditor(), value);
+}
+
+/**
+ * Switch the request to Bearer auth and set the token, entirely via the Auth tab.
+ */
+export async function setBearerToken(page: Page, editor: Frame, token: string): Promise<void> {
+  await openRequestTab(editor, 'auth');
+  const locators = buildCommonLocators(editor);
+
+  // `.auth-mode-selector` works for HTTP/GraphQL and WebSocket (WS lacks the oauth2 testid).
+  await locators.auth.modeSelector().click();
+  const bearerItem = locators.dropdownItem('Bearer Token');
+  await expect(bearerItem).toBeVisible({ timeout: 5_000 });
+  await bearerItem.click();
+
+  await setCodeMirrorValue(page, locators.auth.bearerTokenEditor(), token);
+}
+
+/**
+ * Set a JSON request body robustly (uses `setCodeMirrorValue` so `{{?prompt}}`
+ * survives the body editor's bracket auto-closing).
+ */
+export async function fillJsonBody(page: Page, editor: Frame, jsonBody: string): Promise<void> {
+  await openRequestTab(editor, 'body');
+  const locators = buildCommonLocators(editor);
+  await locators.body.modeSelector().click();
+  await locators.body.modeOption('JSON').click();
+
+  await setCodeMirrorValue(page, locators.body.editor(), jsonBody);
+}
+
+/**
+ * Add a request-level variable on the Vars tab (the first of its two EditableTables).
+ * Name cell is a plain <input>, value cell a CodeMirror editor — used to check a
+ * `{{?prompt}}` inside a variable's value is still discovered.
+ */
+export async function addRequestVar(
+  page: Page,
+  editor: Frame,
+  name: string,
+  value: string
+): Promise<void> {
+  await openRequestTab(editor, 'vars', 'Vars');
+
+  const rows = buildCommonLocators(editor).editableTable.firstTableRows();
+  await expect(rows.first()).toBeVisible({ timeout: 10_000 });
+  const emptyRowIdx = (await rows.count()) - 1;
+  const row = buildCommonLocators(rows.nth(emptyRowIdx)).editableTable;
+
+  await row.columnNameInput().fill(name);
+  await setCodeMirrorValue(page, row.columnValueEditor(), value);
+}
+
+/**
+ * Mock the next `renderer:browse-files` IPC call to return `filePaths`.
+ * Bypasses the native "open file" dialog (used by the gRPC proto-file picker).
+ */
+export async function mockBrowseFiles(frame: Frame, filePaths: string[]): Promise<void> {
+  await frame.evaluate((paths) => {
+    const ipc = (window as any).ipcRenderer;
+    const originalInvoke = ipc.invoke.bind(ipc);
+    ipc.invoke = async (channel: string, ...args: any[]) => {
+      if (channel === 'renderer:browse-files') {
+        ipc.invoke = originalInvoke; // restore after one use
+        return paths;
+      }
+      return originalInvoke(channel, ...args);
+    };
+  }, filePaths);
+}
+
+/**
+ * Load gRPC methods by picking a `.proto` file (no server reflection): open the
+ * proto dropdown, mock the file dialog, click Browse, and wait for the method list.
+ */
+export async function loadGrpcProtoFile(editor: Frame, protoAbsPath: string): Promise<void> {
+  const grpc = buildCommonLocators(editor).grpc;
+  await grpc.protoDropdownIcon().click();
+
+  // A URL-bearing request auto-enters Reflection mode, hiding the picker; flip to Proto File.
+  const browseBtn = grpc.browseButton();
+  if (!(await browseBtn.isVisible().catch(() => false))) {
+    // The toggle's <input> is hidden; click its <label> (the click bubbles to the switch).
+    await grpc.modeToggleLabel().click();
+  }
+
+  await mockBrowseFiles(editor, [protoAbsPath]);
+  await expect(browseBtn).toBeVisible({ timeout: 5_000 });
+  await browseBtn.click();
+
+  // Methods loaded → the method dropdown trigger appears.
+  await expect(grpc.methodDropdownTrigger()).toBeVisible({ timeout: 15_000 });
+}
+
+/** Select a gRPC method by (partial) name from the method dropdown. */
+export async function selectGrpcMethod(editor: Frame, methodText: string): Promise<void> {
+  const grpc = buildCommonLocators(editor).grpc;
+  await grpc.methodDropdownTrigger().click();
+  const item = grpc.methodItem(methodText);
+  await expect(item).toBeVisible({ timeout: 10_000 });
+  await item.click();
+  await expect(grpc.selectedMethodName()).toContainText(methodText, { timeout: 5_000 });
+}
+
+/** Set the first gRPC request message (JSON) on the Message tab. */
+export async function setGrpcMessage(page: Page, editor: Frame, json: string): Promise<void> {
+  const locators = buildCommonLocators(editor);
+  const messageTab = locators.tabs.byText('Message');
+  await expect(messageTab).toBeVisible({ timeout: 10_000 });
+  await messageTab.click();
+
+  await setCodeMirrorValue(page, locators.grpc.messageEditor(), json);
+}
+
+/**
  * Expand a collection in the sidebar by clicking its chevron toggle.
  *
  * Clicking the chevron (handleCollectionCollapse) only toggles the tree open/close.
@@ -346,6 +576,51 @@ export async function openRequest(
   collectionName: string,
   requestName: string
 ): Promise<Frame> {
+  // HTTP/GraphQL request editors expose the URL bar as `#request-url`.
+  return openRequestByMarker(page, sidebar, collectionName, requestName, '#request-url');
+}
+
+/**
+ * Open a WebSocket request in the editor.
+ *
+ * WebSocket editors use the `WsQueryUrl` pane, which does NOT render `#request-url`;
+ * while disconnected it shows the connect control (`ws-connect-button`), so we key
+ * the frame-detection on that instead.
+ */
+export async function openWsRequest(
+  page: Page,
+  sidebar: Frame,
+  collectionName: string,
+  requestName: string
+): Promise<Frame> {
+  return openRequestByMarker(page, sidebar, collectionName, requestName, '[data-testid="ws-connect-button"]');
+}
+
+/**
+ * Open a gRPC request in the editor. gRPC editors render `GrpcQueryUrl`, keyed on
+ * `grpc-query-url-container`.
+ */
+export async function openGrpcRequest(
+  page: Page,
+  sidebar: Frame,
+  collectionName: string,
+  requestName: string
+): Promise<Frame> {
+  return openRequestByMarker(page, sidebar, collectionName, requestName, '[data-testid="grpc-query-url-container"]');
+}
+
+/**
+ * Shared implementation for opening a request and resolving its editor Frame.
+ * `markerSelector` is a selector unique to the target editor type, used both to
+ * locate the correct webview frame and to assert the editor has finished loading.
+ */
+async function openRequestByMarker(
+  page: Page,
+  sidebar: Frame,
+  collectionName: string,
+  requestName: string,
+  markerSelector: string
+): Promise<Frame> {
   // Expand the collection (clicks chevron, not the row text)
   await expandCollection(sidebar, collectionName);
 
@@ -358,7 +633,7 @@ export async function openRequest(
   // Click the request to open it in the editor
   await requestRow.click();
 
-  // Wait for the request editor frame — look specifically for #request-url
+  // Wait for the request editor frame — identified by the marker selector.
   const timeout = 20_000;
   const deadline = Date.now() + timeout;
   let editor: Frame | undefined;
@@ -367,7 +642,7 @@ export async function openRequest(
     for (const frame of page.frames()) {
       if (frame === sidebar || frame === page.mainFrame()) continue;
       try {
-        const has = await frame.locator('#request-url').count();
+        const has = await frame.locator(markerSelector).count();
         if (has > 0) { editor = frame; break; }
       } catch { /* detached */ }
     }
@@ -375,8 +650,8 @@ export async function openRequest(
     await page.waitForTimeout(500);
   }
 
-  if (!editor) throw new Error(`Request editor frame with #request-url not found within ${timeout}ms`);
-  await expect(editor.locator('#request-url')).toBeVisible({ timeout: 10_000 });
+  if (!editor) throw new Error(`Request editor frame with '${markerSelector}' not found within ${timeout}ms`);
+  await expect(editor.locator(markerSelector)).toBeVisible({ timeout: 10_000 });
 
   return editor;
 }

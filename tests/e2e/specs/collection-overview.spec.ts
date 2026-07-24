@@ -1,8 +1,8 @@
 import * as path from 'path';
 import type { Page, Frame } from '@playwright/test';
-import { test, expect } from '../fixtures';
-import { openBrunoSidebar, importCollection } from '../utils/actions';
-import { buildCommonLocators } from '../utils/locators';
+import { test, expect } from '../utils/fixtures';
+import { openBrunoSidebar, importCollection } from '../utils/page/actions';
+import { buildCommonLocators } from '../utils/page/locators';
 
 /**
  * Open the collection settings dashboard (Overview tab) by clicking the

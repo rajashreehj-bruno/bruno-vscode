@@ -184,7 +184,7 @@ const WsQueryUrl = ({
 
             {connectionStatus !== 'connected' && (
               <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
-                <div className="infotip" onClick={handleConnect}>
+                <div className="infotip" onClick={handleConnect} data-testid="ws-connect-button">
                   <IconPlugConnected
                     className={classnames('cursor-pointer', {
                       'animate-pulse': connectionStatus === CONNECTION_STATUS.CONNECTING

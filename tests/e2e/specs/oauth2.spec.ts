@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { test, expect } from '../fixtures';
+import { test, expect } from '../utils/fixtures';
 import type { Frame } from '@playwright/test';
 import {
   openBrunoSidebar,
@@ -9,12 +9,12 @@ import {
   openRequest,
   sendRequest,
   importCollection,
-} from '../utils/actions';
+} from '../utils/page/actions';
 import {
   fillOAuth2Field,
   selectDropdownItem,
   getActiveEditorFrame,
-} from '../utils/oauth2-actions';
+} from '../utils/page/oauth2-actions';
 
 const TEST_SERVER = 'http://127.0.0.1:8081';
 

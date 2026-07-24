@@ -625,6 +625,17 @@ export const wsConnectOnly = (item: AppItem, collectionUid: string): ThunkAction
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
 
+    // Resolve any {{?prompt}} variables (e.g. in the URL/headers) before connecting.
+    try {
+      const promptVariables = await extractPromptVariablesForRequest(itemCopy, collectionCopy);
+      collectionCopy.promptVariables = promptVariables ?? {};
+    } catch (error) {
+      if (error === 'cancelled') {
+        return resolve(undefined); // Resolve without error if user cancels prompt
+      }
+      return reject(error);
+    }
+
     connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly: true })
       .then(resolve)
       .catch((err: Error) => {
@@ -2890,6 +2901,14 @@ export const fetchOauth2Credentials = (payload: FetchOauth2CredentialsPayload): 
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   request.globalEnvironmentVariables = globalEnvironmentVariables;
+
+  // Resolve any {{?prompt}} variables in the OAuth2 config before fetching the token.
+  const oauth2Item = findItemInCollection(collection, itemUid);
+  if (oauth2Item) {
+    const promptVariables = await extractPromptVariablesForRequest(oauth2Item, collection);
+    request.promptVariables = promptVariables ?? {};
+  }
+
   return new Promise((resolve, reject) => {
     window.ipcRenderer
       .invoke('renderer:fetch-oauth2-credentials', { itemUid, request, collection })
@@ -2917,6 +2936,14 @@ export const refreshOauth2Credentials = (payload: FetchOauth2CredentialsPayload)
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   request.globalEnvironmentVariables = globalEnvironmentVariables;
+
+  // Resolve any {{?prompt}} variables in the OAuth2 config before refreshing the token.
+  const oauth2Item = findItemInCollection(collection, itemUid);
+  if (oauth2Item) {
+    const promptVariables = await extractPromptVariablesForRequest(oauth2Item, collection);
+    request.promptVariables = promptVariables ?? {};
+  }
+
   return new Promise((resolve, reject) => {
     window.ipcRenderer
       .invoke('renderer:refresh-oauth2-credentials', { itemUid, request, collection })

@@ -125,6 +125,7 @@ function interpolateOAuth2Config(
     ...(requestCopy.oauth2CredentialVariables as Record<string, unknown> || {}),
     ...(requestCopy.runtimeVariables as Record<string, unknown> || {}),
     ...(additionalVars || {}),
+    ...(requestCopy.promptVariables as Record<string, unknown> || {}),
   };
 
   // Interpolate all string values in the oauth2 config

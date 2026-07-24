@@ -1,11 +1,11 @@
 import * as path from 'path';
-import { test, expect } from '../fixtures';
+import { test, expect } from '../utils/fixtures';
 import {
   openBrunoSidebar,
   importCollection,
   openRequest,
-} from '../utils/actions';
-import { buildCommonLocators } from '../utils/locators';
+} from '../utils/page/actions';
+import { buildCommonLocators } from '../utils/page/locators';
 
 // The active request's sidebar row carries this class when highlighted.
 const ACTIVE_CLASS = /item-focused-in-tab/;
@@ -18,7 +18,7 @@ test.describe('Sidebar active item highlight', () => {
 
     await importCollection(page, sidebar, fixturePath, tmpDir, collectionName);
 
-    const row = (name: string) => buildCommonLocators(sidebar).sidebar.itemRow(name);
+    const row = (name: string) => buildCommonLocators(sidebar).sidebar.collectionItem(name);
 
     // Opening a request highlights its sidebar row.
     await openRequest(page, sidebar, collectionName, 'Alpha Request');

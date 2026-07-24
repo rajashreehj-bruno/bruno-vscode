@@ -8,6 +8,9 @@
  *   GET  /ping                                    - Health check
  *   GET  /headers                                 - Echo request headers
  *   POST /api/echo/json                           - Echo JSON body
+ *   *    /api/echo/query                           - Echo query params as a flat object
+ *   *    /api/echo/header                          - Echo the `x-prompt-header` header value
+ *   *    /api/echo/auth                            - Echo the `authorization` header value
  *   *    /api/auth/oauth2/client_credentials/*     - Client credentials flow
  *   *    /api/auth/oauth2/password_credentials/*   - Password credentials flow
  *   *    /api/auth/oauth2/authorization_code/*     - Authorization code flow
@@ -15,14 +18,26 @@
  *   GET  /api/auth/oauth2/resource                - Protected resource (all flows)
  *   POST /api/auth/oauth2/refresh                 - Token refresh
  *   POST /api/auth/oauth2/reset                   - Reset all OAuth2 state
+ *   ws://…/<path>                                  - WebSocket echo (sends a welcome
+ *                                                    message containing the connected
+ *                                                    path, then echoes every message)
+ *
+ * The echo endpoints deliberately return SMALL objects with the value of interest at
+ * the TOP LEVEL of the JSON so assertions stay robust regardless of how the Bruno
+ * response pane renders the body (CodeMirror editor vs. collapsed JSON tree).
  */
 
 import express from 'express';
 import cors from 'cors';
+import * as http from 'http';
+import { WebSocketServer } from 'ws';
 import { oauth2Router } from './auth/oauth2';
+import { startGrpcServer } from './grpc';
 
 const app = express();
-const port = process.env.PORT || 8081;
+const port = Number(process.env.PORT) || 8081;
+// gRPC needs its own port; default to the HTTP port + 1.
+const grpcPort = Number(process.env.GRPC_PORT) || port + 1;
 
 app.use(cors());
 app.use(express.json());
@@ -59,12 +74,50 @@ app.post('/api/echo/json', (req, res) => {
   res.json(req.body);
 });
 
+// Echo query params back as a flat, top-level object (e.g. `?token=abc` -> `{"token":"abc"}`).
+app.all('/api/echo/query', (req, res) => {
+  res.json(req.query);
+});
+
+// Echo a single probe header so header interpolation is easy to assert at the top level.
+// `app.all` so both HTTP (GET) and GraphQL (POST) requests reach it.
+app.all('/api/echo/header', (req, res) => {
+  res.json({ value: req.headers['x-prompt-header'] ?? '' });
+});
+
+// Echo the Authorization header so bearer-auth interpolation is easy to assert.
+// `app.all` so both HTTP (GET) and GraphQL (POST) requests reach it.
+app.all('/api/echo/auth', (req, res) => {
+  res.json({ authorization: req.headers['authorization'] ?? '' });
+});
+
 // --- Auth ---
 
 app.use('/api/auth/oauth2', oauth2Router);
 
 // --- Start ---
 
-app.listen(port, () => {
+const server = http.createServer(app);
+
+// WebSocket echo server, sharing the HTTP server and accepting any path.
+const wss = new WebSocketServer({ server });
+wss.on('connection', (socket, req) => {
+  // On connect, echo back the handshake path / header / auth.
+  socket.send(JSON.stringify({
+    type: 'welcome',
+    path: req.url,
+    header: req.headers['x-prompt-header'] ?? '',
+    authorization: req.headers['authorization'] ?? ''
+  }));
+  // Echo every subsequent message straight back.
+  socket.on('message', (data) => {
+    socket.send(JSON.stringify({ type: 'echo', message: data.toString() }));
+  });
+});
+
+server.listen(port, () => {
   console.log(`[test-server] Listening on http://127.0.0.1:${port}`);
 });
+
+// gRPC echo server, on its own port.
+startGrpcServer(grpcPort);

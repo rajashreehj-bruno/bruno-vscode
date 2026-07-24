@@ -423,6 +423,15 @@ const registerGrpcEventHandlers = (): void => {
       const passphrase = httpsAgentRequestFields.passphrase;
       const pfx = httpsAgentRequestFields.pfx;
 
+      // Reflection is method discovery, not an invocation. Its failures are
+      // returned via { success: false, error } (shown as a toast), so suppress
+      // `grpc:error` here — otherwise it paints a bogus status on the response
+      // pane that lingers until a real invocation overwrites it.
+      const reflectionSendEvent = (eventName: string, ...eventArgs: unknown[]) => {
+        if (eventName === 'grpc:error') return;
+        sendEvent(eventName, ...eventArgs);
+      };
+
       const methods = await grpcClient?.loadMethodsFromReflection({
         request: preparedRequest as never,
         collectionUid: collection.uid,
@@ -432,7 +441,7 @@ const registerGrpcEventHandlers = (): void => {
         passphrase,
         pfx,
         verifyOptions,
-        sendEvent
+        sendEvent: reflectionSendEvent
       });
 
       return { success: true, methods: safeParseJSON(safeStringifyJSON(methods)) };

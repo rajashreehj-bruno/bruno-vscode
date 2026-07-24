@@ -1,4 +1,4 @@
-import { Page, Frame, expect } from '@playwright/test';
+import { Page, Frame, Locator, expect } from '@playwright/test';
 
 /**
  * Type a value into a SingleLineEditor (CodeMirror) field identified by its
@@ -36,12 +36,10 @@ export async function fillOAuth2Field(page: Page, editor: Frame, fieldKey: strin
 }
 
 /**
- * Click a dropdown trigger and select an item by text.
- * Accepts either a data-testid or CSS selector for the trigger.
- * Waits for the dropdown item to appear, clicks it, waits for it to disappear.
+ * Click a dropdown trigger (a selector string or a Locator) and pick an item by text.
  */
-export async function selectDropdownItem(editor: Frame, triggerSelector: string, itemText: string) {
-  await editor.locator(triggerSelector).click();
+export async function selectDropdownItem(editor: Frame, trigger: string | Locator, itemText: string) {
+  await (typeof trigger === 'string' ? editor.locator(trigger) : trigger).click();
   const item = editor.locator('.dropdown-item').filter({ hasText: itemText });
   await expect(item).toBeVisible({ timeout: 5_000 });
   await item.click();

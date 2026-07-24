@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { test, expect } from '../fixtures';
+import { test, expect } from '../utils/fixtures';
 import {
   openBrunoSidebar,
   createCollection,
@@ -9,7 +9,7 @@ import {
   openRequest,
   setJsonBody,
   sendRequest,
-} from '../utils/actions';
+} from '../utils/page/actions';
 
 // All tests share a single VS Code instance (workers: 1) so they run serially.
 // Each test gets its own tmpDir for collection storage.
