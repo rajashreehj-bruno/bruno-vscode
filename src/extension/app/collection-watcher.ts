@@ -80,7 +80,7 @@ const isEnvironmentsFolder = (pathname: string, collectionPath: string): boolean
   return path.normalize(dirname) === path.normalize(envDirectory);
 };
 
-const isFolderRootFile = (pathname: string, collectionPath: string): boolean => {
+export const isFolderRootFile = (pathname: string, collectionPath: string): boolean => {
   const basename = path.basename(pathname);
   const format = getCollectionFormat(collectionPath);
 
@@ -92,7 +92,7 @@ const isFolderRootFile = (pathname: string, collectionPath: string): boolean => 
   return false;
 };
 
-const isCollectionRootFile = (pathname: string, collectionPath: string): boolean => {
+export const isCollectionRootFile = (pathname: string, collectionPath: string): boolean => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 

@@ -19,7 +19,7 @@ import {
   hasHandler
 } from '../ipc/handlers';
 import { openCollection, loadCollectionMetadata, setMessageSender as setCollectionsMessageSender } from '../app/collections';
-import { notifyActiveItemToSidebar } from '../ipc/collection';
+import { notifyActiveItemToSidebar, clearActiveItemFromSidebar } from '../ipc/collection';
 import { setMessageSender as setWatcherMessageSender } from '../app/collection-watcher';
 import collectionWatcher from '../app/collection-watcher';
 import { AppItem } from '@bruno-types';
@@ -84,10 +84,13 @@ export async function openTransientRequestPanel(
     if (e.webviewPanel.active) {
       stateManager.setActiveEditorWebview(panel.webview);
       notifyActiveItemToSidebar(itemUid);
+    } else {
+      clearActiveItemFromSidebar(itemUid);
     }
   });
 
   panel.onDidDispose(() => {
+    clearActiveItemFromSidebar(itemUid);
     if (savedPanels.has(itemUid)) {
       savedPanels.delete(itemUid);
       stateManager.removeWebview(panel.webview);

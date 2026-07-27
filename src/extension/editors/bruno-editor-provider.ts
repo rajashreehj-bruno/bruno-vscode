@@ -15,11 +15,15 @@ import {
   openCollectionForSingleRequest,
   setMessageSender as setCollectionsMessageSender
 } from '../app/collections';
-import { setMessageSender as setWatcherMessageSender } from '../app/collection-watcher';
+import {
+  setMessageSender as setWatcherMessageSender,
+  isCollectionRootFile,
+  isFolderRootFile
+} from '../app/collection-watcher';
 import collectionWatcher from '../app/collection-watcher';
 import { defaultWorkspaceManager } from '../store/default-workspace';
 import { registerDocument, unregisterDocument } from './dirty-state-manager';
-import { notifyActiveItemToSidebar } from '../ipc/collection';
+import { notifyActiveItemToSidebar, clearActiveItemFromSidebar } from '../ipc/collection';
 
 interface IpcMessage {
   type: 'invoke' | 'send';
@@ -78,14 +82,17 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
 
     // The sidebar item this editor represents, so the sidebar can highlight it
     // (collection.bru → collection, folder.bru → folder, otherwise the request).
-    const editorFileName = path.basename(filePath);
-    const isCollectionRootFile = editorFileName === 'collection.bru' || editorFileName === 'opencollection.yml';
-    const isFolderRootFile = editorFileName === 'folder.bru' || editorFileName === 'folder.yml';
-    const activeItemUid = collectionRoot && isCollectionRootFile
-      ? generateUidBasedOnHash(collectionRoot)
-      : isFolderRootFile
-        ? generateUidBasedOnHash(path.dirname(filePath))
-        : generateUidBasedOnHash(filePath);
+    // Reuses the collection-watcher detection helpers, which apply the
+    // collection-root check and collection-format awareness, so the editor and
+    // the watcher agree on what a given file represents.
+    let activeItemUid: string;
+    if (collectionRoot && isCollectionRootFile(filePath, collectionRoot)) {
+      activeItemUid = generateUidBasedOnHash(collectionRoot);
+    } else if (collectionRoot && isFolderRootFile(filePath, collectionRoot)) {
+      activeItemUid = generateUidBasedOnHash(path.dirname(filePath));
+    } else {
+      activeItemUid = generateUidBasedOnHash(filePath);
+    }
 
     stateManager.setActiveEditorWebview(webviewPanel.webview);
     notifyActiveItemToSidebar(activeItemUid);
@@ -93,10 +100,13 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
       if (e.webviewPanel.active) {
         stateManager.setActiveEditorWebview(webviewPanel.webview);
         notifyActiveItemToSidebar(activeItemUid);
+      } else {
+        clearActiveItemFromSidebar(activeItemUid);
       }
     });
 
     webviewPanel.onDidDispose(() => {
+      clearActiveItemFromSidebar(activeItemUid);
       stateManager.removeWebview(webviewPanel.webview);
       unregisterDocument(document.uri.fsPath);
       viewDataByWebview.delete(webviewPanel.webview);
