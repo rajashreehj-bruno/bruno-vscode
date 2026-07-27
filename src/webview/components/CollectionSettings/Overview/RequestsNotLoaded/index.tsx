@@ -7,6 +7,7 @@ import { isItemARequest, itemIsOpenedInTabs } from 'utils/tabs/index';
 import { getDefaultRequestPaneTab } from 'utils/collections/index';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { RootState } from 'providers/ReduxStore';
+import { isSidebarMode, openRequestInVSCodeEditor } from 'utils/webviewMode';
 
 interface RequestsNotLoadedProps {
   collection: React.ReactNode;
@@ -28,24 +29,33 @@ const RequestsNotLoaded = ({
 
   const handleRequestClick = (item: any) => (e: any) => {
     e.preventDefault();
-    if (isItemARequest(item)) {
-      if (itemIsOpenedInTabs(item, tabs as any)) {
-        dispatch(
-          focusTab({
-            uid: item.uid
-          })
-        );
-        return;
-      }
+    if (!isItemARequest(item)) {
+      return;
+    }
+
+    // In the VS Code sidebar, open the file through the custom editor (same path
+    // the sidebar tree uses) so nested collection config files route to the
+    // RequestNotLoaded panel instead of the nested collection's settings.
+    if (isSidebarMode()) {
+      openRequestInVSCodeEditor(item.pathname);
+      return;
+    }
+
+    if (itemIsOpenedInTabs(item, tabs as any)) {
       dispatch(
-        addTab({
-          uid: item.uid,
-          collectionUid: collection.uid,
-          requestPaneTab: getDefaultRequestPaneTab(item)
+        focusTab({
+          uid: item.uid
         })
       );
       return;
     }
+    dispatch(
+      addTab({
+        uid: item.uid,
+        collectionUid: collection.uid,
+        requestPaneTab: getDefaultRequestPaneTab(item)
+      })
+    );
   };
 
   return (

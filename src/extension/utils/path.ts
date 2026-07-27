@@ -25,6 +25,20 @@ export function isCollectionRoot(dirPath: string): boolean {
   return fs.existsSync(brunoJsonPath) || fs.existsSync(ocYmlPath);
 }
 
+/**
+ * Resolve the collection root for a path that may be a collection-root directory,
+ * a file inside a collection, or a subfolder. Unlike findCollectionRoot() — which
+ * only walks UP and so returns the PARENT when given a nested collection's own
+ * root dir — this checks the path itself first, so a nested collection resolves
+ * to itself, not its parent.
+ */
+export function resolveCollectionRoot(targetPath: string): string | null {
+  if (isCollectionRoot(targetPath)) {
+    return targetPath;
+  }
+  return findCollectionRoot(targetPath);
+}
+
 export function getCollectionName(collectionRoot: string): string {
   try {
     const brunoJsonPath = path.join(collectionRoot, 'bruno.json');

@@ -9,6 +9,8 @@ import {
 } from '../ipc/handlers';
 import { storeTransientItem }  from '../panels/transient-request-panel';
 import { WebviewHelper } from '../webview/helper';
+import { findCollectionRoot } from '../utils/path';
+import { setPendingNotLoadedRequest, ensureBrunoEditorIntent } from '../editors/bruno-editor-provider';
 
 interface IpcMessage {
   type: 'invoke' | 'send';
@@ -258,9 +260,24 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
     switch (channel) {
       case 'sidebar:open-request':
         if (typeof args[0] === 'string') {
+          const requestPath = args[0];
+          // A nested collection's config file surfaced as a "not loaded" request
+          // item. Flag it so the editor opens the RequestNotLoaded panel scoped to
+          // the PARENT collection instead of the nested collection's settings.
+          const basename = path.basename(requestPath);
+          if (basename === 'opencollection.yml' || basename === 'collection.bru') {
+            const rootOfFile = findCollectionRoot(requestPath);
+            const parentRoot = rootOfFile ? findCollectionRoot(rootOfFile) : null;
+            if (parentRoot) {
+              // Same file may already be open as the nested collection itself;
+              // force a fresh render as the "not loaded" request of the parent.
+              await ensureBrunoEditorIntent(requestPath, 'not-loaded');
+              setPendingNotLoadedRequest(requestPath, parentRoot);
+            }
+          }
           await vscode.commands.executeCommand(
             'vscode.openWith',
-            vscode.Uri.file(args[0]),
+            vscode.Uri.file(requestPath),
             'bruno.requestEditor'
           );
         }

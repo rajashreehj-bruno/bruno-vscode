@@ -103,6 +103,21 @@ export const isCollectionRootFile = (pathname: string, collectionPath: string): 
   return basename === 'collection.bru' || basename === 'opencollection.yml';
 };
 
+/**
+ * A collection root file (opencollection.yml / collection.bru) that lives BELOW
+ * the collection root — i.e. it belongs to a nested collection. Not a real
+ * request, so we flag it as errored: the overview lists it under "requests not
+ * loaded" and clicking it shows RequestNotLoaded, not a broken request. (The
+ * collection's own root file is handled separately and never reaches here.)
+ */
+const isNestedCollectionRootFile = (pathname: string, collectionPath: string): boolean => {
+  const basename = path.basename(pathname);
+  if (basename !== 'collection.bru' && basename !== 'opencollection.yml') {
+    return false;
+  }
+  return path.normalize(path.dirname(pathname)) !== path.normalize(collectionPath);
+};
+
 interface EnvironmentVariable {
   name: string;
   value: string | number | boolean | Record<string, unknown> | null;
@@ -633,6 +648,21 @@ class CollectionWatcher {
         return;
       }
 
+      // A nested collection's root config file is not a request — surface it as
+      // "not loaded" rather than parsing it as one.
+      if (isNestedCollectionRootFile(pathname, collectionPath)) {
+        file.data = { name: path.basename(pathname), type: 'http-request' };
+        file.error = { message: 'This is a nested collection, not a request.' };
+        file.partial = true;
+        file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        if (sender) {
+          sender('main:collection-tree-updated', 'addFile', file);
+        }
+        return;
+      }
+
       const format = getCollectionFormat(collectionPath);
 
       file.data = await parseRequest(content, { format });
@@ -1158,6 +1188,18 @@ class CollectionWatcher {
         return null;
       }
 
+      // A nested collection's root config file is not a request — surface it as
+      // "not loaded" rather than parsing it as one.
+      if (isNestedCollectionRootFile(pathname, collectionPath)) {
+        file.data = { name: path.basename(pathname), type: 'http-request' };
+        file.error = { message: 'This is a nested collection, not a request.' };
+        file.partial = true;
+        file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        return file;
+      }
+
       const format = getCollectionFormat(collectionPath);
       const metaData = parseFileMeta(content, format);
       if (!metaData) {
@@ -1207,6 +1249,21 @@ class CollectionWatcher {
       if (!content.trim()) {
         console.log('[Watcher] Skipping empty file:', pathname);
         this.markFileAsProcessed(collectionUid, pathname);
+        return;
+      }
+
+      // A nested collection's root config file is not a request — surface it as
+      // "not loaded" rather than parsing it as one.
+      if (isNestedCollectionRootFile(pathname, collectionPath)) {
+        file.data = { name: path.basename(pathname), type: 'http-request' };
+        file.error = { message: 'This is a nested collection, not a request.' };
+        file.partial = true;
+        file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        if (messageSender) {
+          messageSender('main:collection-tree-updated', 'addFile', file);
+        }
         return;
       }
 

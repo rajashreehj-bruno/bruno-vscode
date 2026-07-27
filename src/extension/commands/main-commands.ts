@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { BrunoEditorProvider, setPendingVariablesMode } from '../editors/bruno-editor-provider';
+import { BrunoEditorProvider, setPendingVariablesMode, ensureBrunoEditorIntent } from '../editors/bruno-editor-provider';
 import { SidebarViewProvider } from '../views/SidebarViewProvider';
-import { findCollectionRoot, isCollectionRoot } from '../utils/path';
+import { resolveCollectionRoot } from '../utils/path';
 import { openRunnerPanel } from '../panels/runner-panel';
 import { openGlobalEnvironmentsPanel } from '../panels/global-environments-panel';
 import { openEnvironmentSettingsPanel } from '../panels/environment-settings-panel';
@@ -105,11 +105,7 @@ export function registerMainCommands(
         targetPath = path.dirname(fsPath);
       }
 
-      let collectionRoot = findCollectionRoot(targetPath);
-
-      if (!collectionRoot && isCollectionRoot(targetPath)) {
-        collectionRoot = targetPath;
-      }
+      const collectionRoot = resolveCollectionRoot(targetPath);
 
       if (!collectionRoot) {
         vscode.window.showWarningMessage('No Bruno collection found in this folder');
@@ -128,8 +124,12 @@ export function registerMainCommands(
       }
 
       const fsPath = uri.fsPath;
-      const collectionRoot = findCollectionRoot(fsPath) || fsPath;
+      const collectionRoot = resolveCollectionRoot(fsPath) || fsPath;
       const collectionRootFile = await ensureCollectionRootFile(collectionRoot);
+
+      // The same opencollection.yml may already be open as the parent's "not
+      // loaded" item; force a fresh render as the collection itself.
+      await ensureBrunoEditorIntent(collectionRootFile, 'default');
 
       await vscode.commands.executeCommand(
         'vscode.openWith',
@@ -147,9 +147,10 @@ export function registerMainCommands(
       }
 
       const fsPath = uri.fsPath;
-      const collectionRoot = findCollectionRoot(fsPath) || fsPath;
+      const collectionRoot = resolveCollectionRoot(fsPath) || fsPath;
       const collectionRootFile = await ensureCollectionRootFile(collectionRoot);
 
+      await ensureBrunoEditorIntent(collectionRootFile, 'default');
       setPendingVariablesMode(collectionRootFile, collectionRoot);
 
       await vscode.commands.executeCommand(
@@ -221,11 +222,7 @@ export function registerMainCommands(
       }
 
       const fsPath = uri.fsPath;
-      let collectionRoot = findCollectionRoot(fsPath);
-
-      if (!collectionRoot && isCollectionRoot(fsPath)) {
-        collectionRoot = fsPath;
-      }
+      const collectionRoot = resolveCollectionRoot(fsPath);
 
       if (!collectionRoot) {
         vscode.window.showWarningMessage('No Bruno collection found');

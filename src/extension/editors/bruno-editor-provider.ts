@@ -36,15 +36,54 @@ interface CollectionLoadParams {
   filePath: string;
   collectionRoot: string;
   isVariablesMode: boolean;
+  notLoadedParentRoot: string | null;
   webviewPanel: vscode.WebviewPanel;
 }
 
 const pendingVariablesModeRequests = new Map<string, { collectionRoot: string }>();
+// Nested-collection config files opened via the parent's "requests not loaded"
+// item. Maps file path → the parent collection root it belongs to.
+const pendingNotLoadedRequests = new Map<string, { parentCollectionRoot: string }>();
 // Stores view data per webview so renderer:ready can re-send as fallback
 const viewDataByWebview = new Map<vscode.Webview, Record<string, unknown>>();
 
 export function setPendingVariablesMode(filePath: string, collectionRoot: string): void {
   pendingVariablesModeRequests.set(filePath, { collectionRoot });
+}
+
+export function setPendingNotLoadedRequest(filePath: string, parentCollectionRoot: string): void {
+  pendingNotLoadedRequests.set(filePath, { parentCollectionRoot });
+}
+
+// Intent the file's open Bruno editor tab is currently showing. A nested
+// collection's opencollection.yml is one file with two views ('default' = the
+// collection, 'not-loaded' = the parent's item), but VS Code reuses one tab per
+// URI — so we track intent to force a fresh render when it changes.
+const currentIntentByFilePath = new Map<string, string>();
+
+/**
+ * Ensure the Bruno editor for `filePath` renders with `intent`. If a tab is open
+ * for this file with a DIFFERENT intent, close it so the next open re-renders
+ * fresh (last action wins). No-op when there's no tab or the intent matches.
+ */
+export async function ensureBrunoEditorIntent(filePath: string, intent: string): Promise<void> {
+  const key = vscode.Uri.file(filePath).fsPath;
+  const current = currentIntentByFilePath.get(key);
+  if (current === undefined || current === intent) {
+    return;
+  }
+  for (const group of vscode.window.tabGroups.all) {
+    for (const tab of group.tabs) {
+      const input = tab.input;
+      if (input && typeof input === 'object' && 'uri' in input) {
+        const uri = (input as { uri: vscode.Uri }).uri;
+        if (uri.fsPath === key) {
+          await vscode.window.tabGroups.close(tab);
+        }
+      }
+    }
+  }
+  currentIntentByFilePath.delete(key);
 }
 
 export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
@@ -110,6 +149,7 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
       stateManager.removeWebview(webviewPanel.webview);
       unregisterDocument(document.uri.fsPath);
       viewDataByWebview.delete(webviewPanel.webview);
+      currentIntentByFilePath.delete(document.uri.fsPath);
     });
 
     const pendingVariables = pendingVariablesModeRequests.get(filePath);
@@ -117,6 +157,14 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
       pendingVariablesModeRequests.delete(filePath);
     }
     const isVariablesMode = !!pendingVariables;
+
+    const pendingNotLoaded = pendingNotLoadedRequests.get(filePath);
+    if (pendingNotLoaded) {
+      pendingNotLoadedRequests.delete(filePath);
+    }
+    const notLoadedParentRoot = pendingNotLoaded?.parentCollectionRoot ?? null;
+
+    currentIntentByFilePath.set(filePath, notLoadedParentRoot ? 'not-loaded' : 'default');
 
     webviewPanel.webview.onDidReceiveMessage((message: IpcMessage) => {
       this._handleMessage(webviewPanel.webview, document, message);
@@ -128,13 +176,37 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
         filePath,
         collectionRoot,
         isVariablesMode,
+        notLoadedParentRoot,
         webviewPanel
       });
     }
   }
 
   private async _loadCollection(pending: CollectionLoadParams): Promise<void> {
-    const { filePath, collectionRoot, isVariablesMode, webviewPanel } = pending;
+    const { filePath, collectionRoot, isVariablesMode, notLoadedParentRoot, webviewPanel } = pending;
+
+    const fileName = path.basename(filePath);
+    const isCollectionFile = fileName === 'collection.bru' || fileName === 'opencollection.yml';
+    const isFolderFile = fileName === 'folder.bru' || fileName === 'folder.yml';
+
+    // A nested collection's config file opened via the parent's "requests not
+    // loaded" item — not a real request. Render it as the parent's not-loaded
+    // request (RequestNotLoaded), not the nested collection's settings. Only the
+    // item-click path sets this, so opening the nested collection shows its own view.
+    const isNestedCollectionConfig = !isVariablesMode && !!notLoadedParentRoot;
+
+    // A folder's containing collection is the root ABOVE its own directory.
+    // findCollectionRoot(filePath) returns the folder's own dir when the folder is
+    // itself a nested collection, scoping folder-settings wrong ("Folder not
+    // found") — so resolve from the folder's parent instead.
+    let effectiveRoot: string;
+    if (isNestedCollectionConfig) {
+      effectiveRoot = notLoadedParentRoot as string;
+    } else if (isFolderFile && !isVariablesMode) {
+      effectiveRoot = findCollectionRoot(path.dirname(filePath)) || collectionRoot;
+    } else {
+      effectiveRoot = collectionRoot;
+    }
 
     const webviewSender = (channel: string, ...args: unknown[]) => {
       stateManager.sendTo(webviewPanel.webview, channel, ...args);
@@ -160,7 +232,7 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
       } else {
         collectionUid = await openCollectionForSingleRequest(
           collectionWatcher,
-          collectionRoot,
+          effectiveRoot,
           filePath,
           {},
           webviewSender
@@ -168,11 +240,7 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
       }
 
       if (collectionUid) {
-        await defaultWorkspaceManager.addCollectionToWorkspace(collectionRoot);
-
-        const fileName = path.basename(filePath);
-        const isCollectionFile = fileName === 'collection.bru' || fileName === 'opencollection.yml';
-        const isFolderFile = fileName === 'folder.bru' || fileName === 'folder.yml';
+        await defaultWorkspaceManager.addCollectionToWorkspace(effectiveRoot);
 
         let viewData: {
           viewType: string;
@@ -186,27 +254,35 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
           viewData = {
             viewType: 'variables',
             collectionUid,
-            collectionPath: collectionRoot
+            collectionPath: effectiveRoot
+          };
+        } else if (isNestedCollectionConfig) {
+          // Nested collection config file → not-loaded request of the parent.
+          viewData = {
+            viewType: 'request',
+            collectionUid,
+            collectionPath: effectiveRoot,
+            itemUid: generateUidBasedOnHash(filePath)
           };
         } else if (isCollectionFile) {
           viewData = {
             viewType: 'collection-settings',
             collectionUid,
-            collectionPath: collectionRoot
+            collectionPath: effectiveRoot
           };
         } else if (isFolderFile) {
           const folderPath = path.dirname(filePath);
           viewData = {
             viewType: 'folder-settings',
             collectionUid,
-            collectionPath: collectionRoot,
+            collectionPath: effectiveRoot,
             folderUid: generateUidBasedOnHash(folderPath)
           };
         } else {
           viewData = {
             viewType: 'request',
             collectionUid,
-            collectionPath: collectionRoot,
+            collectionPath: effectiveRoot,
             itemUid: generateUidBasedOnHash(filePath)
           };
         }
@@ -220,8 +296,10 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
         // would show "0 requests". Stream the rest of the tree to this webview.
         // Unlike the shared watcher scan, loadFullCollection targets this webview
         // and has no already-scanned guard, so it works regardless of prior opens.
-        if (!isVariablesMode && (isCollectionFile || isFolderFile)) {
-          await collectionWatcher.loadFullCollection(collectionRoot, collectionUid, webviewSender);
+        // (A nested collection config file opens a single request view and doesn't
+        // need the parent's full tree.)
+        if (!isVariablesMode && !isNestedCollectionConfig && (isCollectionFile || isFolderFile)) {
+          await collectionWatcher.loadFullCollection(effectiveRoot, collectionUid, webviewSender);
         }
       }
     } catch (error) {
