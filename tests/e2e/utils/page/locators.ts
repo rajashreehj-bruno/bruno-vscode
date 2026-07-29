@@ -51,7 +51,7 @@ export const buildCommonLocators = (frame: FrameLike) => ({
   newRequest: {
     typeOption: (type: string) => frame.locator('.request-type-option').filter({ hasText: type }),
     methodSelector: () => frame.locator('.method-selector-container .method-selector'),
-    methodOption: (method: string) => frame.locator(`text=${method}`),
+    methodOption: (method: string) => frame.getByTestId(`new-request-method-${method.toLowerCase()}`),
     nameInput: () => frame.locator('#requestName'),
     urlEditor: () => frame.locator('.url-input-container .CodeMirror'),
     submit: () => frame.locator('button[type="submit"]').filter({ hasText: 'Create Request' })

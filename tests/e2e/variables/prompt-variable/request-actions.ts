@@ -68,5 +68,8 @@ export async function expectSentWithoutPrompt(page: Page, editor: Frame): Promis
 /** Assert the request was aborted (prompt cancelled): no response appears. */
 export async function expectRequestAborted(page: Page, editor: Frame): Promise<void> {
   const current = await getActiveEditorFrame(page, editor);
-  await expect(buildCommonLocators(current).response.statusCode()).toHaveCount(0);
+  const locators = buildCommonLocators(current);
+  await expectNoPromptModal(current);
+  await expect(locators.sendRequest()).toBeVisible();
+  await expect(locators.response.statusCode()).toHaveCount(0);
 }

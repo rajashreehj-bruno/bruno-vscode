@@ -6,11 +6,6 @@ import { buildCommonLocators } from '../../utils/page/locators';
  * `{{?prompt}}` variables (one input per unique prompt).
  */
 
-/** The modal's content wrapper. */
-export function promptModal(editor: Frame) {
-  return buildCommonLocators(editor).promptVariables.modal();
-}
-
 /** Assert the modal is visible with exactly `expectedInputs` inputs (one per unique prompt). */
 export async function expectPromptModal(editor: Frame, expectedInputs: number): Promise<void> {
   const p = buildCommonLocators(editor).promptVariables;

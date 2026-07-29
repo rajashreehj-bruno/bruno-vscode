@@ -2905,8 +2905,13 @@ export const fetchOauth2Credentials = (payload: FetchOauth2CredentialsPayload): 
   // Resolve any {{?prompt}} variables in the OAuth2 config before fetching the token.
   const oauth2Item = findItemInCollection(collection, itemUid);
   if (oauth2Item) {
-    const promptVariables = await extractPromptVariablesForRequest(oauth2Item, collection);
-    request.promptVariables = promptVariables ?? {};
+    try {
+      const promptVariables = await extractPromptVariablesForRequest(oauth2Item, collection);
+      request.promptVariables = promptVariables ?? {};
+    } catch (error) {
+      if (error === 'cancelled') throw new Error('Request cancelled by user');
+      throw error;
+    }
   }
 
   return new Promise((resolve, reject) => {
@@ -2940,8 +2945,13 @@ export const refreshOauth2Credentials = (payload: FetchOauth2CredentialsPayload)
   // Resolve any {{?prompt}} variables in the OAuth2 config before refreshing the token.
   const oauth2Item = findItemInCollection(collection, itemUid);
   if (oauth2Item) {
-    const promptVariables = await extractPromptVariablesForRequest(oauth2Item, collection);
-    request.promptVariables = promptVariables ?? {};
+    try {
+      const promptVariables = await extractPromptVariablesForRequest(oauth2Item, collection);
+      request.promptVariables = promptVariables ?? {};
+    } catch (error) {
+      if (error === 'cancelled') throw new Error('Request cancelled by user');
+      throw error;
+    }
   }
 
   return new Promise((resolve, reject) => {

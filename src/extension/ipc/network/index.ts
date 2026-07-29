@@ -231,7 +231,7 @@ const executeRequest = async (
       requestVariables: context.requestVariables,
       runtimeVariables: context.runtimeVariables,
       processEnvVars: context.processEnvVars,
-      promptVariables: (request.promptVariables || {}) as Record<string, string>
+      promptVariables: (request.promptVariables || {}) as Record<string, unknown>
     }) as unknown as BrunoRequest;
 
     const headers = interpolatedRequest.headers;

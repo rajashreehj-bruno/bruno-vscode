@@ -570,6 +570,7 @@ const NewRequestView: React.FC<NewRequestViewProps> = ({ collection, itemUid, it
                       method={formik.values.requestMethod}
                       onMethodSelect={(val: string) => formik.setFieldValue('requestMethod', val)}
                       showCaret
+                      dropdownTestId="new-request-method"
                     />
                   </div>
                 )}

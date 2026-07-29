@@ -334,9 +334,7 @@ export async function setCodeMirrorValue(page: Page, cm: Locator, text: string):
   await page.keyboard.press(`${modifier}+a`);
   await page.keyboard.press('Backspace');
   await page.keyboard.insertText(text);
-  // Blur to commit the onChange, then let it settle.
   await page.keyboard.press('Tab');
-  await page.waitForTimeout(300);
 }
 
 /**
