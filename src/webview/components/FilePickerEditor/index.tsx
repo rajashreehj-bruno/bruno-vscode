@@ -112,11 +112,12 @@ const FilePickerEditor = ({
       <StyledWrapper>
         <div
           className={`file-picker-selected ${readOnly ? 'read-only' : ''}`}
+          data-testid="file-picker-selected"
           title={title}
           onClick={!readOnly ? browse : undefined}
         >
           <IconFile size={16} className="file-icon" />
-          <span className="file-name">
+          <span className="file-name" data-testid="file-picker-file-name">
             {renderButtonText(filenames)}
           </span>
           {!readOnly && (
@@ -138,6 +139,7 @@ const FilePickerEditor = ({
     <StyledWrapper>
       <button
         className={`file-picker-btn ${readOnly ? 'read-only' : ''} ${displayMode === 'icon' ? 'icon-only' : ''} ${displayMode === 'labelAndIcon' ? 'icon-right' : ''}`}
+        data-testid="file-picker-button"
         onClick={browse}
         disabled={readOnly}
         type="button"

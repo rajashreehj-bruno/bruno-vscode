@@ -8,6 +8,7 @@ import { saveCancelToken, deleteCancelToken, cancelTokens } from '../../utils/ca
 import { cookiesStore } from '../../store/cookies';
 import { getCookieStringForUrl, saveCookies } from '../../utils/cookies';
 import { createFormData, formatMultipartData } from '../../utils/form-data';
+import { readFileBody, getSelectedFileBodyEntry, DEFAULT_FILE_BODY_CONTENT_TYPE } from '../../utils/file-body';
 import { getPreferences } from '../../store/preferences';
 import { getProcessEnvVars } from '../../store/process-env';
 import { getCertsAndProxyConfig } from './cert-utils';
@@ -109,6 +110,7 @@ interface BrunoRequest {
     xml?: string;
     formUrlEncoded?: Array<{ name: string; value: string; enabled?: boolean }>;
     multipartForm?: Array<{ name: string; value: string; type?: string; enabled?: boolean; contentType?: string }>;
+    file?: Array<{ filePath?: string | null; contentType?: string | null; selected?: boolean }>;
     graphql?: {
       query?: string;
       variables?: string;
@@ -348,6 +350,17 @@ const executeRequest = async (
       preparedRequest.headers = { ...preparedRequest.headers, ...formHeaders };
       (preparedRequest as unknown as { _originalMultipartData?: unknown })._originalMultipartData = multipartFields;
       (preparedRequest as unknown as { collectionPath?: string }).collectionPath = context.collectionPath;
+    }
+
+    if (request.body?.mode === 'file') {
+      const fileBody = readFileBody(request.body.file, context.collectionPath);
+      preparedRequest.data = fileBody?.data;
+      if (fileBody) {
+        const contentTypeSet = Object.keys(preparedRequest.headers).some((key) => key.toLowerCase() === 'content-type');
+        if (!contentTypeSet) {
+          preparedRequest.headers['content-type'] = fileBody.contentType;
+        }
+      }
     }
 
     const preferences = getPreferences();
@@ -728,6 +741,15 @@ const prepareItemRequest = (item: unknown, collection: unknown): BrunoRequest =>
       case 'multipartForm':
         headers.push({ name: 'content-type', value: 'multipart/form-data', enabled: true });
         break;
+      case 'file': {
+        const selectedFile = getSelectedFileBodyEntry(body.file);
+        headers.push({
+          name: 'content-type',
+          value: (selectedFile?.contentType || '').trim() || DEFAULT_FILE_BODY_CONTENT_TYPE,
+          enabled: true
+        });
+        break;
+      }
       case 'graphql':
         headers.push({ name: 'content-type', value: 'application/json', enabled: true });
         break;

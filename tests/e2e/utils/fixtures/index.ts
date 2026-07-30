@@ -56,8 +56,14 @@ async function resolveExecutable(): Promise<string> {
   }
   console.log('[e2e] Downloading stable VS Code…');
   const exe = await downloadAndUnzipVSCode('stable');
-  console.log(`[e2e] Using VS Code: ${exe}`);
-  return exe;
+  // VS Code 1.131 renamed the macOS binary from `Electron` to `Code`, but @vscode/test-electron
+  // still points at the old name — spawning it fails with ENOENT. Accept whichever one exists.
+  const resolved = fs.existsSync(exe) ? exe : path.join(path.dirname(exe), 'Code');
+  if (!fs.existsSync(resolved)) {
+    throw new Error(`VS Code executable not found (tried ${exe} and ${resolved})`);
+  }
+  console.log(`[e2e] Using VS Code: ${resolved}`);
+  return resolved;
 }
 
 /** Write VS Code user settings to suppress welcome/trust dialogs and speed up startup */

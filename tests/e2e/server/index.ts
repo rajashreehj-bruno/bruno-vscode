@@ -7,6 +7,8 @@
  * Endpoints:
  *   GET  /ping                                    - Health check
  *   GET  /headers                                 - Echo request headers
+ *   POST /raw-body                                - Record the raw request body as received
+ *   GET  /get-raw-body                            - Read back the last recorded raw body
  *   POST /api/echo/json                           - Echo JSON body
  *   *    /api/echo/query                           - Echo query params as a flat object
  *   *    /api/echo/header                          - Echo the `x-prompt-header` header value
@@ -40,6 +42,22 @@ const port = Number(process.env.PORT) || 8081;
 const grpcPort = Number(process.env.GRPC_PORT) || port + 1;
 
 app.use(cors());
+
+// Records the body as received so tests can assert what the extension actually sent.
+// Must stay above express.json()/urlencoded(), which would consume the stream first.
+let lastRawBody: { contentType: string | null; body: string } = { contentType: null, body: '' };
+app.post('/raw-body', express.raw({ type: '*/*' }), (req, res) => {
+  lastRawBody = {
+    contentType: (req.headers['content-type'] as string) ?? null,
+    // A request with no body at all never reaches express.raw, leaving req.body unset
+    body: Buffer.isBuffer(req.body) ? req.body.toString('utf8') : ''
+  };
+  res.json({ ok: true });
+});
+app.get('/get-raw-body', (_req, res) => {
+  res.json(lastRawBody);
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -80,6 +80,15 @@ export const buildCommonLocators = (frame: FrameLike) => ({
     modeOption: (name: string) => frame.getByText(name, { exact: true }),
     editor: () => frame.locator('.CodeMirror-wrap')
   },
+  // Body-mode dropdown addressed by test id (`body-mode-<mode>` comes from
+  // MenuDropdown's per-item id), plus the File / Binary row controls.
+  requestBody: {
+    modeSelector: () => frame.getByTestId('body-mode'),
+    modeOption: (mode: string) => frame.getByTestId(`body-mode-${mode}`),
+    addFile: () => frame.getByTestId('body-file-add'),
+    selectFile: () => frame.getByTestId('file-picker-button').first(),
+    selectedFileName: () => frame.getByTestId('file-picker-file-name').first()
+  },
   oauth2: {
     authModeSelector: () => frame.getByTestId('oauth2-auth-mode-selector'),
     grantTypeSelector: () => frame.getByTestId('oauth2-grant-type-selector'),
