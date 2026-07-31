@@ -260,7 +260,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
     switch (channel) {
       case 'sidebar:open-request':
         if (typeof args[0] === 'string') {
-          const requestPath = args[0];
+          const requestPath = vscode.Uri.file(args[0]).fsPath;
           // A nested collection's config file surfaced as a "not loaded" request
           // item. Flag it so the editor opens the RequestNotLoaded panel scoped to
           // the PARENT collection instead of the nested collection's settings.

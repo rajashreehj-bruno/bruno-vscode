@@ -118,6 +118,21 @@ const isNestedCollectionRootFile = (pathname: string, collectionPath: string): b
   return path.normalize(path.dirname(pathname)) !== path.normalize(collectionPath);
 };
 
+/**
+ * Fill `file` in as the "not loaded" tree entry for a nested collection's root
+ * config file: placeholder request data plus an error, so the overview lists it
+ * under "requests not loaded" instead of rendering a broken request. Callers
+ * emit or return `file` themselves.
+ */
+const markAsNestedCollectionFile = (file: FileData, pathname: string, size: number): void => {
+  file.data = { name: path.basename(pathname), type: 'http-request' };
+  file.error = { message: 'This is a nested collection, not a request.' };
+  file.partial = true;
+  file.loading = false;
+  file.size = sizeInMB(size);
+  hydrateRequestWithUuid(file.data, pathname);
+};
+
 interface EnvironmentVariable {
   name: string;
   value: string | number | boolean | Record<string, unknown> | null;
@@ -651,12 +666,7 @@ class CollectionWatcher {
       // A nested collection's root config file is not a request — surface it as
       // "not loaded" rather than parsing it as one.
       if (isNestedCollectionRootFile(pathname, collectionPath)) {
-        file.data = { name: path.basename(pathname), type: 'http-request' };
-        file.error = { message: 'This is a nested collection, not a request.' };
-        file.partial = true;
-        file.loading = false;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
+        markAsNestedCollectionFile(file, pathname, fileStats?.size);
         if (sender) {
           sender('main:collection-tree-updated', 'addFile', file);
         }
@@ -1191,12 +1201,7 @@ class CollectionWatcher {
       // A nested collection's root config file is not a request — surface it as
       // "not loaded" rather than parsing it as one.
       if (isNestedCollectionRootFile(pathname, collectionPath)) {
-        file.data = { name: path.basename(pathname), type: 'http-request' };
-        file.error = { message: 'This is a nested collection, not a request.' };
-        file.partial = true;
-        file.loading = false;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
+        markAsNestedCollectionFile(file, pathname, fileStats?.size);
         return file;
       }
 
@@ -1255,12 +1260,7 @@ class CollectionWatcher {
       // A nested collection's root config file is not a request — surface it as
       // "not loaded" rather than parsing it as one.
       if (isNestedCollectionRootFile(pathname, collectionPath)) {
-        file.data = { name: path.basename(pathname), type: 'http-request' };
-        file.error = { message: 'This is a nested collection, not a request.' };
-        file.partial = true;
-        file.loading = false;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
+        markAsNestedCollectionFile(file, pathname, fileStats?.size);
         if (messageSender) {
           messageSender('main:collection-tree-updated', 'addFile', file);
         }
