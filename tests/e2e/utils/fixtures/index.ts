@@ -45,6 +45,29 @@ async function waitForPort(port: number, timeoutMs = 25_000): Promise<void> {
   throw new Error(`Port ${port} never opened within ${timeoutMs}ms`);
 }
 
+/**
+ * @vscode/test-electron hardcodes the macOS binary as `Electron`, but VS Code 1.131
+ * renamed it to `Code`, so spawning the path it hands back fails with ENOENT. Only
+ * macOS is affected — on Windows it returns `Code.exe` and on Linux `code`, both of
+ * which are still current. Rather than hardcode the new name, read it out of the
+ * app bundle so a future rename doesn't break this again.
+ */
+function resolveRenamedBinary(exe: string): string {
+  if (process.platform !== 'darwin') {
+    return exe;
+  }
+  const dir = path.dirname(exe);
+  if (!fs.existsSync(dir)) {
+    return exe;
+  }
+  const entries = fs.readdirSync(dir);
+  if (entries.includes('Code')) {
+    return path.join(dir, 'Code');
+  }
+  // Contents/MacOS holds only the main executable, whatever it is called.
+  return entries.length === 1 ? path.join(dir, entries[0]) : exe;
+}
+
 async function resolveExecutable(): Promise<string> {
   if (process.env.CURSOR_PATH) {
     console.log(`[e2e] Using Cursor: ${process.env.CURSOR_PATH}`);
@@ -56,9 +79,7 @@ async function resolveExecutable(): Promise<string> {
   }
   console.log('[e2e] Downloading stable VS Code…');
   const exe = await downloadAndUnzipVSCode('stable');
-  // VS Code 1.131 renamed the macOS binary from `Electron` to `Code`, but @vscode/test-electron
-  // still points at the old name — spawning it fails with ENOENT. Accept whichever one exists.
-  const resolved = fs.existsSync(exe) ? exe : path.join(path.dirname(exe), 'Code');
+  const resolved = fs.existsSync(exe) ? exe : resolveRenamedBinary(exe);
   if (!fs.existsSync(resolved)) {
     throw new Error(`VS Code executable not found (tried ${exe} and ${resolved})`);
   }

@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useId } from 'react';
 import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
-import { IconX, IconUpload, IconFile } from '@tabler/icons';
+import { IconX, IconUpload, IconFile, IconAlertTriangle } from '@tabler/icons';
+import { Tooltip } from 'react-tooltip';
+import useMissingFileCheck from 'hooks/useMissingFileCheck';
 
 import StyledWrapper from './StyledWrapper';
+import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
 
 interface FilePickerEditorProps {
   value?: unknown;
@@ -41,11 +44,16 @@ const FilePickerEditor = ({
   icon: CustomIcon
 }: any) => {
   const dispatch = useDispatch();
-  const filenames = (isSingleFilePicker ? [value] : value || [])
-    .filter((v: any) => v != null && v != '')
-    .map((v: any) => {
-      return v.split(/[/\\]/).pop();
-    });
+  const warningTooltipId = `file-picker-warning-${useId().replace(/:/g, '')}`;
+
+  const filePaths = (isSingleFilePicker ? [value] : value || [])
+    .filter((v: any) => v != null && v != '');
+  const filenames = filePaths.map((v: any) => v.split(/[/\\]/).pop());
+
+  // A path stored in the request may no longer exist — the file was moved or the
+  // collection was shared without it. Warn instead of failing only on send.
+  const { status, missingPaths } = useMissingFileCheck(filePaths, collection?.pathname);
+  const hasMissingFiles = status === 'ready' && missingPaths.length > 0;
 
   // title is shown when hovering over the button
   const title = filenames.map((v: any) => `- ${v}`).join('\n');
@@ -111,12 +119,20 @@ const FilePickerEditor = ({
     return (
       <StyledWrapper>
         <div
-          className={`file-picker-selected ${readOnly ? 'read-only' : ''}`}
+          className={`file-picker-selected ${readOnly ? 'read-only' : ''} ${hasMissingFiles ? 'has-warning' : ''}`}
           data-testid="file-picker-selected"
           title={title}
           onClick={!readOnly ? browse : undefined}
         >
-          <IconFile size={16} className="file-icon" />
+          {hasMissingFiles ? (
+            <IconAlertTriangleFilled
+              data-tooltip-id={warningTooltipId}
+              className="warning-icon"
+              size={16}
+            />
+          ) : (
+            <IconFile size={16} className="file-icon" />
+          )}
           <span className="file-name" data-testid="file-picker-file-name">
             {renderButtonText(filenames)}
           </span>
@@ -129,6 +145,26 @@ const FilePickerEditor = ({
             >
               <IconX size={16} />
             </button>
+          )}
+          {/* {hasMissingFiles && (
+            <Tooltip id={warningTooltipId} className="tooltip-mod max-w-lg" place="bottom-end">
+              <div className="warning-tooltip" data-testid="file-picker-warning-tooltip">
+                <IconAlertTriangle size={14} strokeWidth={1.5} />
+                <span>The file above is not in the given directory, please upload it again.</span>
+              </div>
+            </Tooltip>
+          )} */}
+          {hasMissingFiles && (
+            <Tooltip
+              id={warningTooltipId}
+              className="tooltip-mod max-w-lg"
+              place="bottom-end"
+            >
+              <div className="warning-tooltip" data-testid="file-picker-warning-tooltip">
+                <IconAlertTriangleFilled size={14} />
+                <span>The file above is not in the given directory, please upload it again.</span>
+              </div>
+            </Tooltip>
           )}
         </div>
       </StyledWrapper>
