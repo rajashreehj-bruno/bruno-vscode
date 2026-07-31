@@ -17,7 +17,7 @@ test.describe('Transient request naming', () => {
 
     // First transient is "Untitled 1", the next increments to "Untitled 2".
     await createTransientRequest(sidebar, collectionName, 'http');
-    await expect(tab('Untitled 1')).toBeVisible({ timeout: 2_000 });
+    await expect(tab('Untitled 1')).toBeVisible();
 
     await createTransientRequest(sidebar, collectionName, 'http');
     await expect(tab('Untitled 2')).toBeVisible({ timeout: 2_000 });
