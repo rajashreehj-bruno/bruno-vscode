@@ -90,8 +90,6 @@ export async function openTransientRequestPanel(
   });
 
   panel.onDidDispose(() => {
-    // Remove the transient from all stores on close so its "Untitled N" number
-    // is freed right away. Item data is kept during the grace window for Undo.
     stateManager.broadcast('main:transient-request-closed', { collectionUid, itemUid });
 
     clearActiveItemFromSidebar(itemUid);
@@ -153,9 +151,7 @@ export async function openTransientRequestPanel(
 
     const item = transientItems.get(itemUid);
     if (item) {
-      // Broadcast so the sidebar store also tracks the transient (keeps
-      // "Untitled N" numbering right and restores it on Undo). The add is
-      // idempotent, so it's safe even though the sidebar already added it.
+      // Broadcast so the sidebar store also tracks the transient request.
       stateManager.broadcast('main:add-transient-request', {
         collectionUid,
         item
