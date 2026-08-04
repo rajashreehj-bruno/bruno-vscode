@@ -261,16 +261,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
       case 'sidebar:open-request':
         if (typeof args[0] === 'string') {
           const requestPath = vscode.Uri.file(args[0]).fsPath;
-          // A nested collection's config file surfaced as a "not loaded" request
-          // item. Flag it so the editor opens the RequestNotLoaded panel scoped to
-          // the PARENT collection instead of the nested collection's settings.
           const basename = path.basename(requestPath);
           if (basename === 'opencollection.yml' || basename === 'collection.bru') {
             const rootOfFile = findCollectionRoot(requestPath);
             const parentRoot = rootOfFile ? findCollectionRoot(rootOfFile) : null;
             if (parentRoot) {
-              // Same file may already be open as the nested collection itself;
-              // force a fresh render as the "not loaded" request of the parent.
               await ensureBrunoEditorIntent(requestPath, 'not-loaded');
               setPendingNotLoadedRequest(requestPath, parentRoot);
             }

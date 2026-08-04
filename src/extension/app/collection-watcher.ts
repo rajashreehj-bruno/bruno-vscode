@@ -103,13 +103,6 @@ export const isCollectionRootFile = (pathname: string, collectionPath: string): 
   return basename === 'collection.bru' || basename === 'opencollection.yml';
 };
 
-/**
- * A collection root file (opencollection.yml / collection.bru) that lives BELOW
- * the collection root — i.e. it belongs to a nested collection. Not a real
- * request, so we flag it as errored: the overview lists it under "requests not
- * loaded" and clicking it shows RequestNotLoaded, not a broken request. (The
- * collection's own root file is handled separately and never reaches here.)
- */
 const isNestedCollectionRootFile = (pathname: string, collectionPath: string): boolean => {
   const basename = path.basename(pathname);
   if (basename !== 'collection.bru' && basename !== 'opencollection.yml') {
@@ -118,12 +111,6 @@ const isNestedCollectionRootFile = (pathname: string, collectionPath: string): b
   return path.normalize(path.dirname(pathname)) !== path.normalize(collectionPath);
 };
 
-/**
- * Fill `file` in as the "not loaded" tree entry for a nested collection's root
- * config file: placeholder request data plus an error, so the overview lists it
- * under "requests not loaded" instead of rendering a broken request. Callers
- * emit or return `file` themselves.
- */
 const markAsNestedCollectionFile = (file: FileData, pathname: string, size: number): void => {
   file.data = { name: path.basename(pathname), type: 'http-request' };
   file.error = { message: 'This is a nested collection, not a request.' };
@@ -663,8 +650,6 @@ class CollectionWatcher {
         return;
       }
 
-      // A nested collection's root config file is not a request — surface it as
-      // "not loaded" rather than parsing it as one.
       if (isNestedCollectionRootFile(pathname, collectionPath)) {
         markAsNestedCollectionFile(file, pathname, fileStats?.size);
         if (sender) {
@@ -1198,8 +1183,6 @@ class CollectionWatcher {
         return null;
       }
 
-      // A nested collection's root config file is not a request — surface it as
-      // "not loaded" rather than parsing it as one.
       if (isNestedCollectionRootFile(pathname, collectionPath)) {
         markAsNestedCollectionFile(file, pathname, fileStats?.size);
         return file;
@@ -1257,8 +1240,6 @@ class CollectionWatcher {
         return;
       }
 
-      // A nested collection's root config file is not a request — surface it as
-      // "not loaded" rather than parsing it as one.
       if (isNestedCollectionRootFile(pathname, collectionPath)) {
         markAsNestedCollectionFile(file, pathname, fileStats?.size);
         if (messageSender) {

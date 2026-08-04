@@ -41,8 +41,6 @@ interface CollectionLoadParams {
 }
 
 const pendingVariablesModeRequests = new Map<string, { collectionRoot: string }>();
-// Nested-collection config files opened via the parent's "requests not loaded"
-// item. Maps file path → the parent collection root it belongs to.
 const pendingNotLoadedRequests = new Map<string, { parentCollectionRoot: string }>();
 // Stores view data per webview so renderer:ready can re-send as fallback
 const viewDataByWebview = new Map<vscode.Webview, Record<string, unknown>>();
@@ -55,17 +53,8 @@ export function setPendingNotLoadedRequest(filePath: string, parentCollectionRoo
   pendingNotLoadedRequests.set(filePath, { parentCollectionRoot });
 }
 
-// Intent the file's open Bruno editor tab is currently showing. A nested
-// collection's opencollection.yml is one file with two views ('default' = the
-// collection, 'not-loaded' = the parent's item), but VS Code reuses one tab per
-// URI — so we track intent to force a fresh render when it changes.
 const currentIntentByFilePath = new Map<string, string>();
 
-/**
- * Ensure the Bruno editor for `filePath` renders with `intent`. If a tab is open
- * for this file with a DIFFERENT intent, close it so the next open re-renders
- * fresh (last action wins). No-op when there's no tab or the intent matches.
- */
 export async function ensureBrunoEditorIntent(filePath: string, intent: string): Promise<void> {
   const key = vscode.Uri.file(filePath).fsPath;
   const current = currentIntentByFilePath.get(key);
@@ -189,16 +178,8 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
     const isCollectionFile = fileName === 'collection.bru' || fileName === 'opencollection.yml';
     const isFolderFile = fileName === 'folder.bru' || fileName === 'folder.yml';
 
-    // A nested collection's config file opened via the parent's "requests not
-    // loaded" item — not a real request. Render it as the parent's not-loaded
-    // request (RequestNotLoaded), not the nested collection's settings. Only the
-    // item-click path sets this, so opening the nested collection shows its own view.
     const isNestedCollectionConfig = !isVariablesMode && !!notLoadedParentRoot;
 
-    // A folder's containing collection is the root ABOVE its own directory.
-    // findCollectionRoot(filePath) returns the folder's own dir when the folder is
-    // itself a nested collection, scoping folder-settings wrong ("Folder not
-    // found") — so resolve from the folder's parent instead.
     let effectiveRoot: string;
     if (isNestedCollectionConfig) {
       effectiveRoot = notLoadedParentRoot as string;
@@ -296,8 +277,6 @@ export class BrunoEditorProvider implements vscode.CustomTextEditorProvider {
         // would show "0 requests". Stream the rest of the tree to this webview.
         // Unlike the shared watcher scan, loadFullCollection targets this webview
         // and has no already-scanned guard, so it works regardless of prior opens.
-        // (A nested collection config file opens a single request view and doesn't
-        // need the parent's full tree.)
         if (!isVariablesMode && !isNestedCollectionConfig && (isCollectionFile || isFolderFile)) {
           await collectionWatcher.loadFullCollection(effectiveRoot, collectionUid, webviewSender);
         }

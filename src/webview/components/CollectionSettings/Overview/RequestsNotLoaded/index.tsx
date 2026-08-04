@@ -33,9 +33,6 @@ const RequestsNotLoaded = ({
       return;
     }
 
-    // In the VS Code sidebar, open the file through the custom editor (same path
-    // the sidebar tree uses) so nested collection config files route to the
-    // RequestNotLoaded panel instead of the nested collection's settings.
     if (isSidebarMode()) {
       openRequestInVSCodeEditor(item.pathname);
       return;

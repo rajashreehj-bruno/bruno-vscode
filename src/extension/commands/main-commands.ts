@@ -127,8 +127,6 @@ export function registerMainCommands(
       const collectionRoot = resolveCollectionRoot(fsPath) || fsPath;
       const collectionRootFile = await ensureCollectionRootFile(collectionRoot);
 
-      // The same opencollection.yml may already be open as the parent's "not
-      // loaded" item; force a fresh render as the collection itself.
       await ensureBrunoEditorIntent(collectionRootFile, 'default');
 
       await vscode.commands.executeCommand(

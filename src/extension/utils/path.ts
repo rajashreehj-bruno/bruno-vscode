@@ -27,10 +27,7 @@ export function isCollectionRoot(dirPath: string): boolean {
 
 /**
  * Resolve the collection root for a path that may be a collection-root directory,
- * a file inside a collection, or a subfolder. Unlike findCollectionRoot() — which
- * only walks UP and so returns the PARENT when given a nested collection's own
- * root dir — this checks the path itself first, so a nested collection resolves
- * to itself, not its parent.
+ * a file inside a collection, or a subfolder. 
  */
 export function resolveCollectionRoot(targetPath: string): string | null {
   if (isCollectionRoot(targetPath)) {
