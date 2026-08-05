@@ -50,8 +50,6 @@ const FilePickerEditor = ({
     .filter((v: any) => v != null && v != '');
   const filenames = filePaths.map((v: any) => v.split(/[/\\]/).pop());
 
-  // A path stored in the request may no longer exist — the file was moved or the
-  // collection was shared without it. Warn instead of failing only on send.
   const { status, missingPaths } = useMissingFileCheck(filePaths, collection?.pathname);
   const hasMissingFiles = status === 'ready' && missingPaths.length > 0;
 
@@ -146,14 +144,6 @@ const FilePickerEditor = ({
               <IconX size={16} />
             </button>
           )}
-          {/* {hasMissingFiles && (
-            <Tooltip id={warningTooltipId} className="tooltip-mod max-w-lg" place="bottom-end">
-              <div className="warning-tooltip" data-testid="file-picker-warning-tooltip">
-                <IconAlertTriangle size={14} strokeWidth={1.5} />
-                <span>The file above is not in the given directory, please upload it again.</span>
-              </div>
-            </Tooltip>
-          )} */}
           {hasMissingFiles && (
             <Tooltip
               id={warningTooltipId}

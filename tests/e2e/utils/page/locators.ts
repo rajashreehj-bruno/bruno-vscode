@@ -80,8 +80,7 @@ export const buildCommonLocators = (frame: FrameLike) => ({
     modeOption: (name: string) => frame.getByText(name, { exact: true }),
     editor: () => frame.locator('.CodeMirror-wrap')
   },
-  // Body-mode dropdown addressed by test id (`body-mode-<mode>` comes from
-  // MenuDropdown's per-item id), plus the File / Binary row controls.
+  // Body-mode dropdown addressed by test id, plus the File / Binary row controls.
   requestBody: {
     modeSelector: () => frame.getByTestId('body-mode'),
     modeOption: (mode: string) => frame.getByTestId(`body-mode-${mode}`),

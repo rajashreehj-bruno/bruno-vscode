@@ -49,8 +49,7 @@ async function waitForPort(port: number, timeoutMs = 25_000): Promise<void> {
  * @vscode/test-electron hardcodes the macOS binary as `Electron`, but VS Code 1.131
  * renamed it to `Code`, so spawning the path it hands back fails with ENOENT. Only
  * macOS is affected — on Windows it returns `Code.exe` and on Linux `code`, both of
- * which are still current. Rather than hardcode the new name, read it out of the
- * app bundle so a future rename doesn't break this again.
+ * which are still current.
  */
 function resolveRenamedBinary(exe: string): string {
   if (process.platform !== 'darwin') {

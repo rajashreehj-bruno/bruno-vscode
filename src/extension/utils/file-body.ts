@@ -14,11 +14,6 @@ export interface FileBody {
 
 export const DEFAULT_FILE_BODY_CONTENT_TYPE = 'application/octet-stream';
 
-/**
- * File / Binary body mode holds a list of files of which exactly one is sent.
- * Falls back to the first file with a path — the radio button in the request pane
- * shows the first row as picked before the user ever clicks it.
- */
 export const getSelectedFileBodyEntry = (files: FileBodyEntry[] | null | undefined): FileBodyEntry | undefined => {
   const candidates = (files || []).filter((file) => typeof file?.filePath === 'string' && file.filePath.trim().length > 0);
   if (!candidates.length) {
@@ -28,8 +23,7 @@ export const getSelectedFileBodyEntry = (files: FileBodyEntry[] | null | undefin
 };
 
 /**
- * Reads the selected file as the raw request body. Paths are stored relative to the
- * collection when the file lives inside it, absolute otherwise.
+ * Reads the selected file as the raw request body.
  */
 export const readFileBody = (files: FileBodyEntry[] | null | undefined, collectionPath: string): FileBody | null => {
   const entry = getSelectedFileBodyEntry(files);

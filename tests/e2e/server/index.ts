@@ -43,8 +43,7 @@ const grpcPort = Number(process.env.GRPC_PORT) || port + 1;
 
 app.use(cors());
 
-// Records the body as received so tests can assert what the extension actually sent.
-// Must stay above express.json()/urlencoded(), which would consume the stream first.
+// Records the body as received.
 let lastRawBody: { contentType: string | null; body: string } = { contentType: null, body: '' };
 app.post('/raw-body', express.raw({ type: '*/*' }), (req, res) => {
   lastRawBody = {

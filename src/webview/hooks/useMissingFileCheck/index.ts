@@ -12,10 +12,6 @@ export interface MissingFileCheckState {
 /**
  * Checks whether the given file paths (resolved against `basePath`) exist on disk.
  *
- * The hook only reports what it observed — callers own the "should I warn" policy.
- * A sequence counter discards results from superseded runs so rapid input changes
- * can't leave stale results on screen.
- *
  * - `'idle'`     — nothing to check (empty input or no `basePath`)
  * - `'checking'` — a check is in flight; `missingPaths` is empty
  * - `'ready'`    — check completed; `missingPaths` lists paths that don't exist
@@ -27,8 +23,6 @@ const useMissingFileCheck = (paths: string[], basePath?: string): MissingFileChe
   const pathsRef = useRef(paths);
   pathsRef.current = paths;
 
-  // Content-based key so re-renders that pass a fresh array with the same
-  // contents don't retrigger the check.
   const pathsKey = paths.join('\0');
 
   useEffect(() => {
