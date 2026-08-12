@@ -22,14 +22,11 @@ export const buildCommonLocators = (frame: FrameLike) => ({
     requestsNotLoaded: () => frame.getByTestId('collection-requests-not-loaded'),
     saveButton: () => frame.getByTestId('collection-settings-save')
   },
-  // Environment picker in the collection toolbar .
   environment: {
     trigger: () => frame.getByTestId('environment-selector-trigger'),
-    // Names shown on the trigger; absent while nothing is selected.
     activeName: () => frame.getByTestId('active-collection-environment'),
     activeGlobalName: () => frame.getByTestId('active-global-environment'),
     inactiveLabel: () => frame.getByTestId('no-active-environment'),
-    // Rows of the open dropdown's collection tab — one per environment.
     item: (name: string) => frame.getByTestId('environment-list-item').filter({ hasText: name }),
     items: () => frame.getByTestId('environment-list-item'),
     noEnvironmentOption: () => frame.getByTestId('environment-list-no-environment'),
