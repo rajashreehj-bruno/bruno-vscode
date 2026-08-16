@@ -33,26 +33,13 @@ interface CollectionInfo {
 }
 
 function getNextName(collection: CollectionInfo): string {
-  if (!collection || !collection.items) {
-    return 'Untitled 1';
-  }
-
-  const allItems = flattenItems(collection.items as any);
-  const transientRequests = allItems.filter((item: any) => isItemTransientRequest(item));
-
-  let maxNumber = 0;
-  transientRequests.forEach((item: any) => {
-    const match = item.name?.match(/^Untitled (\d+)$/);
-    if (match) {
-      const number = parseInt(match[1], 10);
-      if (number > maxNumber) {
-        maxNumber = number;
-      }
-    }
-  });
-
-  const nextName = `Untitled ${maxNumber + 1}`;
-  return nextName;
+  const items = flattenItems((collection?.items ?? []) as any);
+  const maxNumber = items.reduce((max: number, item: any) => {
+    if (!isItemTransientRequest(item)) return max;
+    const n = Number(item.name?.match(/^Untitled (\d+)$/)?.[1]);
+    return n > max ? n : max;
+  }, 0);
+  return `Untitled ${maxNumber + 1}`;
 }
 
 function getFileExtension(format?: string): string {

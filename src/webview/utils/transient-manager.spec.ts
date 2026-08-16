@@ -75,13 +75,11 @@ describe('transient request names', () => {
   });
 
   test('resets to "Untitled 1" once transients are saved/closed', () => {
-    // Once saved, the transient is removed, so numbering restarts at "Untitled 1".
     const item = transientManager.createHttpRequest({ ...bruCollection, items: [] });
     expect(item.name).toBe('Untitled 1');
   });
 
   test('ignores saved (non-transient) requests when numbering', () => {
-    // Saved requests aren't transients, so they aren't counted.
     const item = transientManager.createHttpRequest({
       ...bruCollection,
       items: [savedRequest('Untitled 3'), transientUntitled(1)]
