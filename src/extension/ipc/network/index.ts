@@ -353,7 +353,7 @@ const executeRequest = async (
     }
 
     if (request.body?.mode === 'file') {
-      const fileBody = readFileBody(request.body.file, context.collectionPath);
+      const fileBody = await readFileBody(request.body.file, context.collectionPath);
       preparedRequest.data = fileBody?.data;
       if (fileBody) {
         const contentTypeSet = Object.keys(preparedRequest.headers).some((key) => key.toLowerCase() === 'content-type');

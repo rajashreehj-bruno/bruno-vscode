@@ -25,7 +25,10 @@ export const getSelectedFileBodyEntry = (files: FileBodyEntry[] | null | undefin
 /**
  * Reads the selected file as the raw request body.
  */
-export const readFileBody = (files: FileBodyEntry[] | null | undefined, collectionPath: string): FileBody | null => {
+export const readFileBody = async (
+  files: FileBodyEntry[] | null | undefined,
+  collectionPath: string
+): Promise<FileBody | null> => {
   const entry = getSelectedFileBodyEntry(files);
   if (!entry) {
     return null;
@@ -34,12 +37,13 @@ export const readFileBody = (files: FileBodyEntry[] | null | undefined, collecti
   const filePath = (entry.filePath as string).trim();
   const resolvedPath = path.isAbsolute(filePath) ? path.resolve(filePath) : path.resolve(collectionPath, filePath);
 
-  if (!fs.existsSync(resolvedPath) || !fs.statSync(resolvedPath).isFile()) {
+  const stats = await fs.promises.stat(resolvedPath).catch((): null => null);
+  if (!stats?.isFile()) {
     throw new Error(`File not found for request body: ${filePath}`);
   }
 
   return {
-    data: fs.readFileSync(resolvedPath),
+    data: await fs.promises.readFile(resolvedPath),
     contentType: (entry.contentType || '').trim() || DEFAULT_FILE_BODY_CONTENT_TYPE
   };
 };
