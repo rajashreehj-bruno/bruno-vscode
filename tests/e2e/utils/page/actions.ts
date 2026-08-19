@@ -642,10 +642,6 @@ async function openRequestByMarker(
   return editor;
 }
 
-/**
- * Open a collection's settings dashboard by clicking its name in the sidebar.
- * Returns the collection-settings webview Frame.
- */
 export async function openCollectionSettings(
   page: Page,
   sidebar: Frame,
@@ -663,9 +659,6 @@ export async function openCollectionSettings(
   return settings;
 }
 
-/**
- * Add a header row on the collection settings Headers tab
- */
 export async function addCollectionHeader(
   page: Page,
   settings: Frame,

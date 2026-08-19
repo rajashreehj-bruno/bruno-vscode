@@ -495,7 +495,6 @@ export const saveMultipleCollections = (collectionDrafts: CollectionDraftInfo[])
         const collectionWrites: Promise<unknown>[] = [];
 
         if (isYmlCollection(collectionCopy)) {
-          // opencollection.yml holds both the root and the config — write it once
           collectionWrites.push(
             ipcRenderer.invoke(
               'renderer:save-collection-root',
@@ -2544,7 +2543,6 @@ export const saveCollectionSettings = (collectionUid: any, brunoConfig: Record<s
     const brunoConfigToSave = brunoConfig || (collectionCopy.draft && collectionCopy.draft.brunoConfig);
 
     if (isYmlCollection(collectionCopy)) {
-      // opencollection.yml holds both the root and the config.
       savePromises.push(
         ipcRenderer.invoke(
           'renderer:save-collection-root',
@@ -2554,7 +2552,6 @@ export const saveCollectionSettings = (collectionUid: any, brunoConfig: Record<s
         )
       );
     } else {
-      // bru: collection.bru holds the root, bruno.json holds the config
       savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig));
 
       if (brunoConfigToSave) {
