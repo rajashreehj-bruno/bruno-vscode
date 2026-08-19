@@ -18,7 +18,7 @@ interface TooltipPosition {
 
 interface HelpProps {
   children?: React.ReactNode;
-  width?: number | string;
+  width?: number;
   placement?: Placement;
   iconComponent?: React.ComponentType<{ size?: number }>;
   size?: number;
