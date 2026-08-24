@@ -19,21 +19,47 @@ export interface MissingFileCheckState {
  */
 const useMissingFileCheck = (paths: string[], basePath?: string): MissingFileCheckState => {
   const [state, setState] = useState<MissingFileCheckState>({ status: 'idle', missingPaths: [] });
+  const [refreshNonce, setRefreshNonce] = useState(0);
   const seqRef = useRef(0);
   const pathsRef = useRef(paths);
   pathsRef.current = paths;
+  const checkedKeyRef = useRef<string | null>(null);
 
   const pathsKey = paths.join('\0');
+  const hasPathsToCheck = Boolean(paths.length && basePath);
+
+  useEffect(() => {
+    if (!hasPathsToCheck) return;
+
+    const refresh = () => {
+      if (document.hidden) return;
+      setRefreshNonce((nonce) => nonce + 1);
+    };
+
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [hasPathsToCheck]);
 
   useEffect(() => {
     const currentPaths = pathsRef.current;
     if (!currentPaths.length || !basePath) {
+      checkedKeyRef.current = null;
       setState({ status: 'idle', missingPaths: [] });
       return;
     }
 
     const seq = ++seqRef.current;
-    setState({ status: 'checking', missingPaths: [] });
+
+    const checkedKey = `${basePath}\0${pathsKey}`;
+    const isRecheck = checkedKeyRef.current === checkedKey;
+    checkedKeyRef.current = checkedKey;
+    if (!isRecheck) {
+      setState({ status: 'checking', missingPaths: [] });
+    }
 
     Promise.all(
       currentPaths.map(async (filePath) => {
@@ -56,7 +82,7 @@ const useMissingFileCheck = (paths: string[], basePath?: string): MissingFileChe
         setState({ status: 'error', missingPaths: [] });
       }
     );
-  }, [pathsKey, basePath]);
+  }, [pathsKey, basePath, refreshNonce]);
 
   return state;
 };
