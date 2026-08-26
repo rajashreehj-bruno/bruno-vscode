@@ -103,5 +103,7 @@ test.describe('Scripting: variable APIs', () => {
     const envFile = path.join(collectionDir, 'environments', 'Local.bru');
     await expect.poll(() => fs.readFileSync(envFile, 'utf8'), { timeout: 15_000 }).toContain('envTok: ENVVAL');
     expect(fs.readFileSync(envFile, 'utf8')).not.toContain('seed: SEED');
+
+    expect(fs.readFileSync(envFile, 'utf8')).not.toContain('__name__');
   });
 });

@@ -182,7 +182,7 @@ import {
   scriptUpdateCollectionVars
 } from './index';
 
-import { each } from 'lodash';
+import { each, omit } from 'lodash';
 import { closeAllCollectionTabs, closeTabs, updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
 import { removeCollectionFromWorkspace, addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -2304,10 +2304,9 @@ export const mergeAndPersistEnvironment
           return dataType === 'string' ? {} : { dataType };
         };
 
-        // Environment vars are merge-only (set/update), unlike the collection and global scopes which
-        // drop vars a script deleted: deleteEnvVar is not among the persisting scripting APIs, so a
-        // script never removes an environment variable from disk.
-        let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => ({
+        const scriptEnvVariables = omit(persistentEnvVariables, ['__name__']);
+
+        let normalizedNewVars = Object.entries(scriptEnvVariables).map(([name, value]) => ({
           uid: uuid(),
           name,
           value,
@@ -2331,7 +2330,7 @@ export const mergeAndPersistEnvironment
           }
         });
 
-        const persistedNames = new Set(Object.keys(persistentEnvVariables));
+        const persistedNames = new Set(Object.keys(scriptEnvVariables));
 
         existingVars.forEach((v: any) => {
           if (!v.ephemeral) {
