@@ -43,9 +43,8 @@ const getJsSandboxRuntime = (collection: Record<string, unknown>): string => {
     return 'nodevm';
   }
 
-  /** QuickJS's wasm sandbox can't be esbuild-bundled (its ESM loader needs `import.meta.url`), so it
-   *  fails to init and every script silently throws; node-vm bundles cleanly. */
-  return 'nodevm';
+  // default runtime is `quickjs`
+  return 'quickjs';
 };
 
 const promisifyStream = async (stream: Readable): Promise<Buffer> => {
