@@ -740,11 +740,13 @@ const prepareItemRequest = (item: unknown, collection: unknown): BrunoRequest =>
         break;
       case 'file': {
         const selectedFile = getSelectedFileBodyEntry(body.file);
-        headers.push({
-          name: 'content-type',
-          value: (selectedFile?.contentType || '').trim() || DEFAULT_FILE_BODY_CONTENT_TYPE,
-          enabled: true
-        });
+        if(selectedFile){
+          headers.push({
+            name: 'content-type',
+            value: (selectedFile?.contentType || '').trim() || DEFAULT_FILE_BODY_CONTENT_TYPE,
+            enabled: true
+          });
+        }
         break;
       }
       case 'graphql':

@@ -19,7 +19,7 @@ export const getSelectedFileBodyEntry = (files: FileBodyEntry[] | null | undefin
   if (!candidates.length) {
     return undefined;
   }
-  return candidates.find((file) => file.selected) || candidates[0];
+  return candidates.find((file) => file.selected);
 };
 
 /**
