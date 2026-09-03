@@ -250,6 +250,29 @@ const getItemSeq = (data: any, fallback?: number): number => {
   return Number.isFinite(num) && num >= 1 ? num : (fallback ?? 1);
 };
 
+const applyAddFilePayloadToItem = (item: AppItem, payload: CollectionAddFileEventPayload) => {
+  const { meta, data, partial, loading, size, error } = payload;
+  const isHydrated = !item.partial && item.request !== undefined;
+  const keepHydrated = partial === true && !error && isHydrated;
+
+  item.name = data?.name;
+  item.type = data?.type;
+  item.seq = getItemSeq(data, item.seq);
+  item.tags = (data as any)?.tags;
+  item.filename = meta.name;
+  item.pathname = meta.pathname;
+  item.size = size;
+
+  if (keepHydrated) return;
+
+  item.request = data?.request;
+  item.settings = data?.settings;
+  item.examples = (data as any)?.examples;
+  item.partial = partial;
+  item.loading = loading;
+  item.error = error;
+};
+
 const ensureFolderRootDraft = (item: AppItem) => {
   if (!item.draft) {
     item.draft = {
@@ -1701,25 +1724,8 @@ export const collectionsSlice = createSlice({
       if (meta.name !== 'folder.bru') {
         const currentItem = find(currentSubItems, (i) => i.uid === data?.uid);
         if (currentItem) {
-          // Preserve existing draft and response if they exist (don't overwrite unsaved changes)
-          const existingDraft = currentItem.draft;
-          const existingResponse = currentItem.response;
-          currentItem.name = data?.name;
-          currentItem.type = data?.type;
-          currentItem.seq = getItemSeq(data, currentItem.seq);
-          currentItem.tags = (data as any)?.tags;
-          currentItem.request = data?.request;
-          currentItem.filename = meta.name;
-          currentItem.pathname = meta.pathname;
-          currentItem.settings = data?.settings;
-          currentItem.examples = (data as any)?.examples;
-          currentItem.partial = partial;
-          currentItem.loading = loading;
-          currentItem.size = size;
-          currentItem.error = error;
-          // Restore preserved draft and response
-          if (existingDraft) currentItem.draft = existingDraft;
-          if (existingResponse) currentItem.response = existingResponse;
+          // Draft and response live outside the payload's fields, so an update leaves them intact.
+          applyAddFilePayloadToItem(currentItem, action.payload);
         } else {
           currentSubItems.push({
             uid: data?.uid as UID,
@@ -1830,23 +1836,7 @@ export const collectionsSlice = createSlice({
         if (meta.name !== 'folder.bru') {
           const currentItem = find(currentSubItems, (i) => i.uid === data?.uid);
           if (currentItem) {
-            const existingDraft = currentItem.draft;
-            const existingResponse = currentItem.response;
-            currentItem.name = data?.name;
-            currentItem.type = data?.type;
-            currentItem.seq = getItemSeq(data, currentItem.seq);
-            currentItem.tags = (data as any)?.tags;
-            currentItem.request = data?.request;
-            currentItem.filename = meta.name;
-            currentItem.pathname = meta.pathname;
-            currentItem.settings = data?.settings;
-            currentItem.examples = (data as any)?.examples;
-            currentItem.partial = partial;
-            currentItem.loading = loading;
-            currentItem.size = size;
-            currentItem.error = error;
-            if (existingDraft) currentItem.draft = existingDraft;
-            if (existingResponse) currentItem.response = existingResponse;
+            applyAddFilePayloadToItem(currentItem, payload);
           } else {
             currentSubItems.push({
               uid: data?.uid as UID,
