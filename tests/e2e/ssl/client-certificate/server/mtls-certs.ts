@@ -85,7 +85,8 @@ export function generateCerts(force = false): void {
 
   // Client PFX (PKCS#12).
   openssl(['pkcs12', '-export', '-out', 'client.pfx', '-inkey', 'client.key', '-in', 'client.crt',
-    '-certfile', 'ca.crt', '-passout', `pass:${PFX_PASSPHRASE}`]);
+    '-certfile', 'ca.crt', '-passout', `pass:${PFX_PASSPHRASE}`,
+    '-certpbe', 'AES-256-CBC', '-keypbe', 'AES-256-CBC', '-macalg', 'sha256']);
 
   // Untrusted CA + client.
   openssl(['genrsa', '-out', 'untrusted-ca.key', '2048']);

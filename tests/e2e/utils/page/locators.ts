@@ -128,7 +128,8 @@ export const buildCommonLocators = (frame: FrameLike) => ({
     messageEditor: () => frame.getByTestId('grpc-messages-container').locator('.CodeMirror-wrap').first(),
     sendRequestButton: () => frame.getByTestId('grpc-send-request-button'),
     responseStatusCode: () => frame.getByTestId('grpc-response-status-code'),
-    responseContent: () => frame.getByTestId('grpc-response-content')
+    responseContent: () => frame.getByTestId('grpc-response-content'),
+    errorMessage: () => frame.getByTestId('grpc-response-content').locator('.error-message')
   },
   // Modal that asks the user for {{?prompt}} values before a request is sent.
   promptVariables: {
@@ -164,6 +165,7 @@ export const buildCommonLocators = (frame: FrameLike) => ({
     // Strip shown once the socket is connected.
     connectionStatusStrip: () => frame.locator('.connection-status-strip'),
     // Text of an incoming message in the WS response pane.
-    incomingMessage: () => frame.locator('.ws-message.ws-incoming .message-content')
+    incomingMessage: () => frame.locator('.ws-message.ws-incoming .message-content'),
+    errorMessage: () => frame.locator('.ws-message.ws-error .message-content')
   }
 });

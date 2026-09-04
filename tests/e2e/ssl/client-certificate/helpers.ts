@@ -18,6 +18,9 @@ const DOMAIN = 'localhost';
 export const TLS_HANDSHAKE_FAILURE =
   /certificate required|handshake failure|bad certificate|tlsv1.*alert|sslv3 alert|SSL alert number|SSL routines|socket hang up|EPROTO/i;
 
+export const GRPC_HANDSHAKE_FAILURE =
+  /UNAVAILABLE|handshake|certificate|Socket closed|ECONNRESET|received http2/i;
+
 async function pickFile(settings: Frame, field: 'cert' | 'key' | 'pfx', filePath: string): Promise<void> {
   const certs = buildCommonLocators(settings).clientCerts;
 
