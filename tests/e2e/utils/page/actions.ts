@@ -27,6 +27,17 @@ export function findCollectionDir(
   throw new Error(`No collection (${configFile}) found under ${root}`);
 }
 
+/** Recursively return paths of every file under `dir` whose name matches `fileName`. */
+export function findFilesWithName(dir: string, fileName: string): string[] {
+  const matches: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) matches.push(...findFilesWithName(full, fileName));
+    else if (entry.name === fileName) matches.push(full);
+  }
+  return matches;
+}
+
 // Find the webview Frame that contains the given marker selector.
 export async function getWebviewFrame(
   page: Page,
@@ -90,19 +101,22 @@ export async function openBrunoSidebar(page: Page): Promise<Frame> {
  * We temporarily intercept that single call so the native file-picker
  * dialog is bypassed and the value flows through Formik's `setFieldValue`.
  */
-export async function mockBrowseDirectory(frame: Frame, dirPath: string): Promise<void> {
-  await frame.evaluate((val) => {
+async function mockIpcInvoke(frame: Frame, channelName: string, dirPath: string): Promise<void> {
+  await frame.evaluate(({ channelName, dirPath }) => {
     const ipc = (window as any).ipcRenderer;
     const originalInvoke = ipc.invoke.bind(ipc);
     ipc.invoke = async (channel: string, ...args: any[]) => {
-      if (channel === 'renderer:browse-directory') {
-        // Restore after one use
+      if (channel === channelName) {
         ipc.invoke = originalInvoke;
-        return val;
+        return dirPath;
       }
       return originalInvoke(channel, ...args);
     };
-  }, dirPath);
+  }, { channelName, dirPath });
+}
+
+export async function mockBrowseDirectory(frame: Frame, dirPath: string): Promise<void> {
+  await mockIpcInvoke(frame, 'renderer:browse-directory', dirPath);
 }
 
 /**
@@ -177,6 +191,40 @@ export async function openImportPanelWithFiles(
 }
 
 /**
+ * Clone a collection from the sidebar ellipse menu.
+ * The clone panel names the copy "<source> copy" and asks for a parent folder.
+ */
+export async function cloneCollection(
+  page: Page,
+  sidebar: Frame,
+  sourceName: string,
+  location: string,
+  cloneSuffix: string = ' copy'
+): Promise<string> {
+  const cloneName = `${sourceName}${cloneSuffix}`;
+  const sidebarLocators = buildCommonLocators(sidebar);
+  const collectionRow = sidebarLocators.sidebar.collectionName(sourceName);
+  await collectionRow.hover();
+  await buildCommonLocators(collectionRow).sidebar.actionsMenu().click();
+  await sidebarLocators.sidebar.actionsItem('clone').click();
+
+  const editor = await waitForNewWebviewFrame(page, sidebar);
+  const cloneForm = buildCommonLocators(editor).cloneCollection;
+  await expect(cloneForm.container()).toBeVisible();
+  await expect(cloneForm.nameInput()).toHaveValue(cloneName);
+
+  await mockIpcInvoke(editor, 'clone-collection:browse-location', location);
+  await cloneForm.browseButton().click();
+  await expect(cloneForm.locationInput()).toHaveValue(location);
+
+  await cloneForm.submit().click();
+
+  await expect(sidebarLocators.sidebar.collectionName(cloneName)).toBeVisible();
+
+  return cloneName;
+}
+
+/**
  * Import a collection from a JSON file using the Bruno import flow.
  *
  * The flow sends an IPC to open a new WebviewPanel with two steps:
@@ -188,13 +236,15 @@ export async function openImportPanelWithFiles(
  * @param filePath - Absolute path to the collection JSON file
  * @param location - Filesystem path where the imported collection will be stored
  * @param expectedName - Expected collection name to verify in the sidebar
+ * @param format - On-disk format chosen on the location step: 'yml' (default) or 'bru'
  */
 export async function importCollection(
   page: Page,
   sidebar: Frame,
   filePath: string,
   location: string,
-  expectedName: string
+  expectedName: string,
+  format: 'yml' | 'bru' = 'yml'
 ): Promise<void> {
   const editor = await openImportPanelWithFiles(page, sidebar, [filePath]);
   const importPanel = buildCommonLocators(editor).importCollection;
@@ -207,6 +257,10 @@ export async function importCollection(
   await mockBrowseDirectory(editor, location);
   await importPanel.browse().click();
   await expect(importPanel.location()).toHaveValue(location, { timeout: 5_000 });
+
+  if (format !== 'yml') {
+    await editor.locator('#format').selectOption(format);
+  }
 
   // Click Import
   await importPanel.submit().click();
@@ -605,6 +659,30 @@ export async function expandCollection(
   if (!isExpanded) {
     await chevron.click();
   }
+}
+
+export async function expandFolder(sidebar: Frame, folderName: string): Promise<void> {
+  const folderRow = buildCommonLocators(sidebar).sidebar.collectionItem(folderName);
+  const chevron = buildCommonLocators(folderRow).sidebar.folderChevron();
+  const isExpanded = await chevron.evaluate((el) => el.classList.contains('rotate-90'));
+  if (!isExpanded) {
+    await chevron.click();
+  }
+}
+
+export async function dragItemIntoFolder(
+  sidebar: Frame,
+  itemName: string,
+  folderName: string
+): Promise<void> {
+  const locators = buildCommonLocators(sidebar);
+  const itemRow = locators.sidebar.collectionItem(itemName);
+  const folderRow = locators.sidebar.collectionItem(folderName);
+  await expect(itemRow).toBeVisible();
+  await expect(folderRow).toBeVisible();
+
+  // steps gives the sidebar a real drag; a single jump does not start one.
+  await itemRow.locator('.item-name').dragTo(folderRow, { steps: 15 });
 }
 
 /**

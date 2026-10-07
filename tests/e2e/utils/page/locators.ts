@@ -10,13 +10,20 @@ export type FrameLike = Frame | Page | Locator;
 
 export const buildCommonLocators = (frame: FrameLike) => ({
   sidebar: {
-    collectionName: (name: string) =>
+    collectionName: (name: string | RegExp) =>
       frame.getByTestId('sidebar-collection-row').filter({ hasText: name }),
+    collectionById: (name: string) =>
+      frame
+        .locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`)
+        .getByTestId('sidebar-collection-row'),
     collectionItem: (name: string) =>
       frame.getByTestId('sidebar-collection-item-row').filter({ hasText: name }),
+    folderChevron: () => frame.getByTestId('folder-chevron'),
     addMenu: () => frame.getByTestId('collections-header-add-menu'),
     addMenuCreate: () => frame.getByTestId('collections-header-add-menu-create'),
-    addMenuImport: () => frame.getByTestId('collections-header-add-menu-import')
+    addMenuImport: () => frame.getByTestId('collections-header-add-menu-import'),
+    actionsMenu: () => frame.getByTestId('collection-actions'),
+    actionsItem: (id: string) => frame.getByTestId(`collection-actions-${id}`)
   },
   importCollection: {
     container: () => frame.getByTestId('import-collection-container'),
@@ -31,6 +38,13 @@ export const buildCommonLocators = (frame: FrameLike) => ({
     submit: () => frame.getByTestId('import-submit'),
     progressSummary: () => frame.getByTestId('import-progress-summary'),
     close: () => frame.getByTestId('import-close')
+  },
+  cloneCollection: {
+    container: () => frame.locator('.clone-container'),
+    nameInput: () => frame.locator('#name'),
+    locationInput: () => frame.locator('#location'),
+    browseButton: () => frame.locator('.browse-btn'),
+    submit: () => frame.locator('button[type="submit"]').filter({ hasText: 'Clone Collection' })
   },
   collectionSettings: {
     container: () => frame.getByTestId('collection-settings'),
@@ -175,7 +189,8 @@ export const buildCommonLocators = (frame: FrameLike) => ({
   },
   response: {
     statusCode: () => frame.getByTestId('response-status-code'),
-    previewContainer: () => frame.getByTestId('response-preview-container')
+    previewContainer: () => frame.getByTestId('response-preview-container'),
+    body: () => frame.getByTestId('response-status-code').locator('..')
   },
   // A dropdown menu item, by its visible text.
   dropdownItem: (text: string) => frame.locator('.dropdown-item').filter({ hasText: text }),
