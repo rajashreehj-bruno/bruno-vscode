@@ -50,28 +50,26 @@ export async function isKeycloakUp(): Promise<boolean> {
  * elsewhere. The container stays up for later specs; global teardown stops it via stopKeycloak().
  */
 export async function ensureKeycloakUp(): Promise<boolean> {
-  if (await isKeycloakUp()) return true;
-  if (process.env.KEYCLOAK_URL) return false;
-  const deadline = Date.now() + KEYCLOAK_START_TIMEOUT - 10_000;
+  if (await isKeycloakUp()) {
+    return true;
+  }
+  if (process.env.KEYCLOAK_URL) {
+    return false;
+  }
   try {
     // A container that is already running (e.g. still booting after `npm run test:keycloak:up`) isn't ours to stop.
     const { stdout: running } = await promisify(execFile)('docker', ['compose', '-f', COMPOSE_FILE, 'ps', '-q', '--status', 'running']);
+    await promisify(execFile)('docker', ['compose', '-f', COMPOSE_FILE, 'up', '-d', '--wait'], {
+      timeout: KEYCLOAK_START_TIMEOUT - 10_000
+    });
     if (!running.trim()) {
-      await promisify(execFile)('docker', ['compose', '-f', COMPOSE_FILE, 'up', '-d', '--wait'], {
-        timeout: deadline - Date.now()
-      });
       fs.writeFileSync(STARTED_MARKER, '');
     }
   } catch (err) {
-    console.warn(`Could not start Keycloak: ${(err as Error).message}`);
+    console.warn(`Could not start Keycloak: ${err instanceof Error ? err.message : String(err)}`);
     return false;
   }
-  // The compose service has no healthcheck, so `--wait` returns before the realm is imported.
-  while (Date.now() < deadline) {
-    if (await isKeycloakUp()) return true;
-    await new Promise((resolve) => setTimeout(resolve, 1_000));
-  }
-  return false;
+  return isKeycloakUp();
 }
 
 /** Stops Keycloak if ensureKeycloakUp() started it; a container started by hand is left alone. */
@@ -81,7 +79,7 @@ export async function stopKeycloak(): Promise<void> {
     await promisify(execFile)('docker', ['compose', '-f', COMPOSE_FILE, 'down'], { timeout: 60_000 });
     fs.rmSync(STARTED_MARKER, { force: true });
   } catch (err) {
-    console.warn(`Could not stop Keycloak: ${(err as Error).message}`);
+    console.warn(`Could not stop Keycloak: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

@@ -135,7 +135,10 @@ export const buildCommonLocators = (frame: FrameLike) => ({
   // Request-editor tabs (Params / Body / Headers / Auth / Vars …).
   tabs: {
     // Request-pane tab; the response pane reuses keys like `headers`.
-    byKey: (key: string) => frame.locator(`div[role="tab"].${key}:not([data-testid="response-pane-tabs"] *)`),
+    byKey: (key: string) => {
+      const pane = frame.getByTestId('request-pane');
+      return pane.getByTestId(`responsive-tab-${key}`).or(pane.getByTestId(`request-tab-${key}`));
+    },
     byText: (text: string) => frame.locator('div[role="tab"]').filter({ hasText: text }),
     more: () => frame.locator('.more-tabs')
   },
