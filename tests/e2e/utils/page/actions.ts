@@ -272,6 +272,18 @@ export async function importCollection(
   ).toBeVisible({ timeout: 20_000 });
 }
 
+export async function openCollectionFromDisk(page: Page, sidebar: Frame, collectionPath: string): Promise<void> {
+  const sidebarLoc = buildCommonLocators(sidebar);
+  await sidebarLoc.sidebar.addMenu().click();
+  await sidebarLoc.sidebar.addMenuOpen().click();
+
+  const dialogInput = buildCommonLocators(page).workbench.quickInputBox();
+  await expect(dialogInput).toBeVisible();
+  await dialogInput.fill(collectionPath + path.sep);
+  await page.keyboard.press('Enter');
+  await expect(dialogInput).toBeHidden();
+}
+
 export async function importMultipleCollections(
   page: Page,
   sidebar: Frame,

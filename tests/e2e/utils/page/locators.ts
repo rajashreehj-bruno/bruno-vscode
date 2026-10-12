@@ -21,6 +21,7 @@ export const buildCommonLocators = (frame: FrameLike) => ({
     folderChevron: () => frame.getByTestId('folder-chevron'),
     addMenu: () => frame.getByTestId('collections-header-add-menu'),
     addMenuCreate: () => frame.getByTestId('collections-header-add-menu-create'),
+    addMenuOpen: () => frame.getByTestId('collections-header-add-menu-open'),
     addMenuImport: () => frame.getByTestId('collections-header-add-menu-import'),
     actionsMenu: () => frame.getByTestId('collection-actions'),
     actionsItem: (id: string) => frame.getByTestId(`collection-actions-${id}`)
@@ -117,11 +118,15 @@ export const buildCommonLocators = (frame: FrameLike) => ({
     // Menu option by request type: http | graphql | grpc | ws.
     option: (type: string) => frame.getByTestId(`collection-new-request-new-${type}`)
   },
-  // VS Code editor tab (workbench, not a webview) — pass the page to the factory.
+  // VS Code workbench UI (not a webview) — pass the page to the factory.
   workbench: {
     editorTab: (title: string) => frame.locator('.tabs-container .tab').filter({ hasText: title }),
     editorTabClose: (title: string) =>
-      frame.locator('.tabs-container .tab').filter({ hasText: title }).locator('.tab-actions .action-label')
+      frame.locator('.tabs-container .tab').filter({ hasText: title }).locator('.tab-actions .action-label'),
+    quickInputBox: () => frame.locator('.quick-input-widget .quick-input-box input'),
+    notificationToasts: () => frame.locator('.notifications-toasts .notification-toast'),
+    notificationToast: (text: string) =>
+      frame.locator('.notifications-toasts .notification-toast').filter({ hasText: text })
   },
   // New Request panel form.
   newRequest: {

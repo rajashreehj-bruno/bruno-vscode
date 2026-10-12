@@ -45,7 +45,7 @@ const configSchema = Yup.object({
   name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
   type: Yup.string().oneOf(['collection']).required('type is required'),
   // For BRU format collections
-  version: Yup.string().oneOf(['1']).notRequired(),
+  version: Yup.string().notRequired(),
   // For YAML format collections (opencollection)
   opencollection: Yup.string().notRequired()
 });
