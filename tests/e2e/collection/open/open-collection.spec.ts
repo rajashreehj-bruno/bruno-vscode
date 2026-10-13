@@ -18,7 +18,7 @@ test.describe('Open collection', () => {
   const cases = [
     { title: 'bruno.json with version "1"', fixture: 'bru-with-version', name: 'Bru With Version' },
     { title: 'bruno.json without version', fixture: 'bru-without-version', name: 'Bru Without Version' },
-    { title: 'bruno.json with a version other than "1"', fixture: 'bru-other-version', name: 'Bru Other Version' },
+    { title: 'bruno.json with a version other than "1"', fixture: 'bru-version-2', name: 'Bru Version 2' },
     { title: 'opencollection.yml with version', fixture: 'yml-with-version', name: 'Yml With Version' },
     { title: 'opencollection.yml without version', fixture: 'yml-without-version', name: 'Yml Without Version' }
   ];
@@ -53,7 +53,7 @@ test.describe('Open collection', () => {
     await openCollectionFromDisk(page, sidebar, collectionPath);
 
     await test.step('Verify the format error is shown and nothing is opened', async () => {
-      await expect(buildCommonLocators(page).workbench.notificationToast('bruno.json format is invalid')).toBeVisible();
+      await expect(buildCommonLocators(page).workbench.getNotificationToastByText('bruno.json format is invalid')).toBeVisible();
       await expect(buildCommonLocators(sidebar).sidebar.collectionName('Bru Invalid Config')).toHaveCount(0);
     });
   });

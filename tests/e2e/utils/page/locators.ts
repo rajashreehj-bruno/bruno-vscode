@@ -21,7 +21,7 @@ export const buildCommonLocators = (frame: FrameLike) => ({
     folderChevron: () => frame.getByTestId('folder-chevron'),
     addMenu: () => frame.getByTestId('collections-header-add-menu'),
     addMenuCreate: () => frame.getByTestId('collections-header-add-menu-create'),
-    addMenuOpen: () => frame.getByTestId('collections-header-add-menu-open'),
+    addMenuOpenItem: () => frame.getByTestId('collections-header-add-menu-open'),
     addMenuImport: () => frame.getByTestId('collections-header-add-menu-import'),
     actionsMenu: () => frame.getByTestId('collection-actions'),
     actionsItem: (id: string) => frame.getByTestId(`collection-actions-${id}`)
@@ -125,7 +125,7 @@ export const buildCommonLocators = (frame: FrameLike) => ({
       frame.locator('.tabs-container .tab').filter({ hasText: title }).locator('.tab-actions .action-label'),
     quickInputBox: () => frame.locator('.quick-input-widget .quick-input-box input'),
     notificationToasts: () => frame.locator('.notifications-toasts .notification-toast'),
-    notificationToast: (text: string) =>
+    getNotificationToastByText: (text: string) =>
       frame.locator('.notifications-toasts .notification-toast').filter({ hasText: text })
   },
   // New Request panel form.
