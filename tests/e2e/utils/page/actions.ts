@@ -275,7 +275,7 @@ export async function importCollection(
 export async function openCollectionFromDisk(page: Page, sidebar: Frame, collectionPath: string): Promise<void> {
   const sidebarLoc = buildCommonLocators(sidebar);
   await sidebarLoc.sidebar.addMenu().click();
-  await sidebarLoc.sidebar.addMenuOpenItem().click();
+  await sidebarLoc.sidebar.openCollectionButton().click();
 
   const dialogInput = buildCommonLocators(page).workbench.quickInputBox();
   await expect(dialogInput).toBeVisible();

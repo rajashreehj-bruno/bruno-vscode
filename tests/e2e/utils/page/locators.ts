@@ -21,7 +21,7 @@ export const buildCommonLocators = (frame: FrameLike) => ({
     folderChevron: () => frame.getByTestId('folder-chevron'),
     addMenu: () => frame.getByTestId('collections-header-add-menu'),
     addMenuCreate: () => frame.getByTestId('collections-header-add-menu-create'),
-    addMenuOpenItem: () => frame.getByTestId('collections-header-add-menu-open'),
+    openCollectionButton: () => frame.getByTestId('collections-header-add-menu-open'),
     addMenuImport: () => frame.getByTestId('collections-header-add-menu-import'),
     actionsMenu: () => frame.getByTestId('collection-actions'),
     actionsItem: (id: string) => frame.getByTestId(`collection-actions-${id}`)
