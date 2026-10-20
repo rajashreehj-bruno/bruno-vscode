@@ -199,7 +199,9 @@ export const buildCommonLocators = (frame: FrameLike) => ({
   timeline: {
     lastItem: () => frame.getByTestId('timeline-entry').first(),
     itemHeader: (item: Locator) => item.getByTestId('timeline-item-header'),
-    requestPanel: (item: Locator) => item.getByTestId('timeline-panel-request')
+    requestPanel: (item: Locator) => item.getByTestId('timeline-panel-request'),
+    networkTab: (item: Locator) => item.getByRole('button', { name: 'Network', exact: true }),
+    networkPanel: (item: Locator) => item.getByTestId('timeline-panel-network')
   },
   body: {
     modeSelector: () => frame.locator('.body-mode-selector'),

@@ -128,6 +128,7 @@ interface BrunoRequest {
     basic?: { username?: string; password?: string };
     bearer?: { token?: string };
     digest?: { username?: string; password?: string };
+    ntlm?: { username?: string; password?: string; domain?: string };
     apikey?: { key?: string; value?: string; placement?: string };
     oauth2?: Record<string, unknown>;
     awsv4?: Record<string, unknown>;
@@ -155,6 +156,11 @@ interface BrunoRequest {
   digestConfig?: {
     username?: string;
     password?: string;
+  };
+  ntlmConfig?: {
+    username?: string;
+    password?: string;
+    domain?: string;
   };
   // Additional properties needed by @usebruno/js ScriptRuntime
   name?: string;
@@ -405,6 +411,7 @@ const executeRequest = async (
       } : undefined,
       requestMaxRedirects,
       digestConfig: request.digestConfig,
+      ntlmConfig: request.ntlmConfig,
       collectionPath: context.collectionPath,
       disableCookies: options.disableCookies,
       timeline
@@ -769,6 +776,15 @@ const prepareItemRequest = (item: unknown, collection: unknown): BrunoRequest =>
     };
   }
 
+  let ntlmConfig: { username?: string; password?: string; domain?: string } | undefined;
+  if (auth?.mode === 'ntlm' && auth.ntlm) {
+    ntlmConfig = {
+      username: auth.ntlm.username,
+      password: auth.ntlm.password,
+      domain: auth.ntlm.domain
+    };
+  }
+
   // This is needed for BrunoRequest.getBody() to work in scripts/assertions
   const data = getRequestData(body);
 
@@ -805,6 +821,7 @@ const prepareItemRequest = (item: unknown, collection: unknown): BrunoRequest =>
       encodeUrl: settings.encodeUrl as boolean | undefined
     },
     digestConfig,
+    ntlmConfig,
     // Additional properties for scripts
     name,
     tags,
