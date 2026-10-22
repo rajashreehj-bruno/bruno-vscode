@@ -1620,6 +1620,9 @@ export const collectionsSlice = createSlice({
       if (collection) {
         collection.items = collection.items || [];
         if (!collection.items.some((i: any) => i.uid === item.uid)) {
+          if (['queued', 'sending'].includes(item.requestState)) {
+            item.requestState = 'idle';
+          }
           collection.items.push(item);
         }
       }
@@ -2320,10 +2323,13 @@ export const collectionsSlice = createSlice({
             return;
           }
 
-          // WS/gRPC use their own event-driven reducers for state management
-          // They should never show the loading overlay (requestState = 'sending')
-          const isStreamingRequest = item.type === 'ws-request' || item.type === 'grpc-request';
-          item.requestState = isStreamingRequest ? null : 'sending';
+          // Only queued/sent events show the loading overlay
+          if (type === 'request-queued' || type === 'request-sent') {
+            // WS/gRPC use their own event-driven reducers for state management
+            // They should never show the loading overlay (requestState = 'sending')
+            const isStreamingRequest = item.type === 'ws-request' || item.type === 'grpc-request';
+            item.requestState = isStreamingRequest ? null : 'sending';
+          }
 
           if (type === 'request-sent' && requestSent) {
             item.requestSent = requestSent;

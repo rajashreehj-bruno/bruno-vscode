@@ -65,6 +65,11 @@ app.get('/ping', (_req, res) => {
   res.send('pong');
 });
 
+// Responds after the given delay in ms
+app.get('/delay/:ms', (req, res) => {
+  setTimeout(() => res.send('done'), Number(req.params.ms));
+});
+
 app.get('/headers', (req, res) => {
   res.json(req.headers);
 });

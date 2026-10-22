@@ -1192,6 +1192,13 @@ export async function saveRequest(page: Page): Promise<void> {
 }
 
 /**
+ * Replace the request URL in a request panel.
+ */
+export async function setRequestUrl(page: Page, frame: Frame, url: string): Promise<void> {
+  await setCodeMirrorValue(page, buildCommonLocators(frame).requestUrl.editor().locator('.CodeMirror'), url);
+}
+
+/**
  * Delete a folder or request from the sidebar by right-clicking and confirming.
  *
  * @param sidebar - The sidebar webview Frame
