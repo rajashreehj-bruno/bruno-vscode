@@ -128,7 +128,7 @@ interface BrunoRequest {
     basic?: { username?: string; password?: string };
     bearer?: { token?: string };
     digest?: { username?: string; password?: string };
-    ntlm?: { username?: string; password?: string; domain?: string };
+    ntlm?: { username: string; password: string; domain?: string };
     apikey?: { key?: string; value?: string; placement?: string };
     oauth2?: Record<string, unknown>;
     awsv4?: Record<string, unknown>;
@@ -779,8 +779,8 @@ const prepareItemRequest = (item: unknown, collection: unknown): BrunoRequest =>
   let ntlmConfig: { username: string; password: string; domain?: string } | undefined;
   if (auth?.mode === 'ntlm' && auth.ntlm) {
     ntlmConfig = {
-      username: auth.ntlm.username || '',
-      password: auth.ntlm.password || '',
+      username: auth.ntlm.username,
+      password: auth.ntlm.password,
       domain: auth.ntlm.domain
     };
   }
