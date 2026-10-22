@@ -456,7 +456,7 @@ export const getOAuth2TokenUsingAuthorizationCode = async ({ request, collection
     autoFetchToken,
     additionalParameters
   } = oAuth;
-  // VS Code always uses Bruno's callback URL with source=vscode param
+  // Always Bruno's hosted callback page; the editor to return to is carried in `state`
   const effectiveCallbackUrl = BRUNO_OAUTH2_CALLBACK_URL;
   const url = oAuth.accessTokenUrl;
 

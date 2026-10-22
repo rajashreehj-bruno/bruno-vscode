@@ -16,6 +16,17 @@ import type { OAuthAdditionalParameter } from '@bruno-types/common/auth';
 
 const AUTHORIZATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
+// The hosted callback page routes to the editor named in a `bruno.<scheme>.` state prefix,
+// defaulting to `vscode://`, so VS Code's state needs no prefix.
+const STATE_SCHEME_PREFIX = 'bruno.';
+const SAFE_URI_SCHEME = /^[a-z][a-z0-9+-]*$/;
+
+export function withEditorScheme(state?: string): string | undefined {
+  const scheme = vscode.env.uriScheme;
+  if (!state || scheme === 'vscode' || !SAFE_URI_SCHEME.test(scheme)) return state;
+  return `${STATE_SCHEME_PREFIX}${scheme}.${state}`;
+}
+
 // --- Module-level state for browser auth tracking ---
 
 let pendingAuthResolve: ((value: AuthorizationResult) => void) | null = null;
@@ -144,7 +155,8 @@ export async function getOAuth2AuthorizationCode(options: AuthorizationCodeOptio
     cancelAuthorization();
   }
 
-  const { authorizationUrl, callbackUrl, clientId, scope, state, pkce, codeChallenge, additionalParameters } = options;
+  const { authorizationUrl, callbackUrl, clientId, scope, pkce, codeChallenge, additionalParameters } = options;
+  const state = withEditorScheme(options.state);
 
   const url = new URL(authorizationUrl);
   url.searchParams.append('response_type', 'code');
@@ -181,7 +193,8 @@ export async function getOAuth2ImplicitToken(options: ImplicitFlowOptions): Prom
     cancelAuthorization();
   }
 
-  const { authorizationUrl, callbackUrl, clientId, scope, state, additionalParameters } = options;
+  const { authorizationUrl, callbackUrl, clientId, scope, additionalParameters } = options;
+  const state = withEditorScheme(options.state);
 
   const url = new URL(authorizationUrl);
   url.searchParams.append('response_type', 'token');
