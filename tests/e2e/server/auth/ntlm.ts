@@ -1,11 +1,7 @@
 /**
- * NTLM test server.
- *
- * Authentication is bound to the connection, the way IIS does it, so a handshake split across
- * sockets fails here instead of passing quietly. Every request is recorded to make that reuse
- * observable, and `/redirect?to=<url>` takes its target from the request so no test configures it.
- *
- * Each spec starts its own instance on a free port, so the recorded requests belong to that test alone.
+ * NTLM test server. Like IIS, it binds auth to the connection, so a handshake split across sockets
+ * fails. Every request is recorded (per instance, one per spec) so tests can assert socket reuse.
+ * `/redirect?to=<url>` redirects to the given URL after auth.
  */
 
 import * as crypto from 'crypto';
@@ -56,7 +52,7 @@ export interface NtlmEndpoint {
   close: () => Promise<void>;
 }
 
-// A security buffer points at data after the header: its length, its max length (which senders set to the same), then where it starts.
+// Security buffer layout: length, max length (same value), offset of the data.
 const writeSecurityBuffer = (message: Buffer, offset: number, { length, start }: { length: number; start: number }) => {
   message.writeUInt16LE(length, offset);
   message.writeUInt16LE(length, offset + 2);
@@ -69,11 +65,7 @@ const readSecurityBuffer = (message: Buffer, offset: number) => {
   return message.subarray(start, start + length);
 };
 
-/**
- * Only the challenge is built here, since type 1 and type 3 come from the client under test. The
- * caller keeps the nonce with its connection because the client keys its proof by it, so a proof
- * answering one connection cannot be replayed onto another.
- */
+// Builds the type 2 challenge; the caller stores the nonce on the socket so a proof can't be replayed on another connection.
 const type2Message = (challenge: Buffer) => {
   const message = Buffer.alloc(HEADER_SIZE + TARGET_INFO_TERMINATOR_SIZE);
 
@@ -116,11 +108,7 @@ const ntlmHashOf = (password: string) => {
   return Buffer.from(hash.buffer());
 };
 
-/**
- * The proof is recomputed rather than trusted, so no test can pass against a server that accepts
- * any credentials. The arithmetic is the one in MS-NLMP 3.3.2 so an unmodified client verifies
- * here, with the password standing in for the hash a domain controller would hold instead.
- */
+// Recomputes the NTLMv2 proof (MS-NLMP 3.3.2) from the password so wrong credentials are rejected.
 const provesPassword = (authorization: string, password: string, challenge: Buffer) => {
   const { ntResponse, domain, username } = parseType3Message(authorization);
 
@@ -211,7 +199,7 @@ export const startNtlmServer = async ({ password = 'pass', host = '127.0.0.1', t
   }
 
   let socketId = 0;
-  // Over TLS the request's socket is the TLS socket, which only `secureConnection` hands out.
+  // Over TLS, req.socket is the TLS socket, which only `secureConnection` provides.
   listener.on(tls ? 'secureConnection' : 'connection', (socket: NtlmSocket) => {
     socket.ntlmSocketId = ++socketId;
     sockets.push(socket);
