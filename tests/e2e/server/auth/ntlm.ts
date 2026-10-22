@@ -41,7 +41,7 @@ export interface NtlmRequestRecord {
   url: string;
   body: string;
   headers: http.IncomingHttpHeaders;
-  provedPassword?: boolean;
+  authenticated?: boolean;
 }
 
 export interface NtlmEndpoint {
@@ -109,7 +109,7 @@ const ntlmHashOf = (password: string) => {
 };
 
 // Recomputes the NTLMv2 proof (MS-NLMP 3.3.2) from the password so wrong credentials are rejected.
-const provesPassword = (authorization: string, password: string, challenge: Buffer) => {
+const isValidNtlmv2Response = (authorization: string, password: string, challenge: Buffer) => {
   const { ntResponse, domain, username } = parseType3Message(authorization);
 
   if (ntResponse.length <= PROOF_SIZE) {
@@ -168,9 +168,9 @@ const handleRequest = (password: string, requests: NtlmRequestRecord[]) =>
       }
       case 3: {
         const nonce = socket.ntlmChallenge;
-        record.provedPassword = Boolean(nonce) && provesPassword(authorization!, password, nonce!);
+        record.authenticated = Boolean(nonce) && isValidNtlmv2Response(authorization!, password, nonce!);
 
-        if (!record.provedPassword) {
+        if (!record.authenticated) {
           return challengeWith('Negotiate, NTLM');
         }
         if (pathname === '/redirect') {
@@ -207,6 +207,7 @@ export const startNtlmServer = async ({ password = 'pass', host = '127.0.0.1', t
 
   await new Promise<void>((resolve) => listener.listen(port, host, resolve));
   const { port: boundPort } = listener.address() as AddressInfo;
+  // IPv6 literals must be bracketed in URLs (RFC 3986).
   const urlHost = host.includes(':') ? `[${host}]` : host;
 
   return {

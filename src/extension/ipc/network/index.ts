@@ -158,8 +158,8 @@ interface BrunoRequest {
     password?: string;
   };
   ntlmConfig?: {
-    username?: string;
-    password?: string;
+    username: string;
+    password: string;
     domain?: string;
   };
   // Additional properties needed by @usebruno/js ScriptRuntime
@@ -776,11 +776,11 @@ const prepareItemRequest = (item: unknown, collection: unknown): BrunoRequest =>
     };
   }
 
-  let ntlmConfig: { username?: string; password?: string; domain?: string } | undefined;
+  let ntlmConfig: { username: string; password: string; domain?: string } | undefined;
   if (auth?.mode === 'ntlm' && auth.ntlm) {
     ntlmConfig = {
-      username: auth.ntlm.username,
-      password: auth.ntlm.password,
+      username: auth.ntlm.username || '',
+      password: auth.ntlm.password || '',
       domain: auth.ntlm.domain
     };
   }

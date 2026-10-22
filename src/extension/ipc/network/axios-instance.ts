@@ -4,7 +4,7 @@
  */
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { NtlmClient, NtlmCredentials } from 'axios-ntlm';
+import { NtlmClient, type NtlmCredentials } from 'axios-ntlm';
 import FormData from 'form-data';
 import https from 'https';
 import { URL } from 'url';
@@ -91,8 +91,8 @@ interface AxiosInstanceOptions {
     password?: string;
   };
   ntlmConfig?: {
-    username?: string;
-    password?: string;
+    username: string;
+    password: string;
     domain?: string;
   };
   collectionPath?: string;
@@ -371,8 +371,8 @@ const createAxiosInstance = (options: AxiosInstanceOptions = {}): AxiosInstance 
 
   if (ntlmConfig) {
     const credentials: NtlmCredentials = {
-      username: ntlmConfig.username || '',
-      password: ntlmConfig.password || '',
+      username: ntlmConfig.username,
+      password: ntlmConfig.password,
       domain: ntlmConfig.domain || ''
     };
     const ntlmClient = NtlmClient(credentials, {});

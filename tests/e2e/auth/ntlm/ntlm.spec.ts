@@ -48,7 +48,7 @@ test.describe('NTLM auth', () => {
         await expect(buildCommonLocators(editor).response.previewContainer()).toContainText('authenticated');
 
         expect(endpoint.messageTypesSeen()).toEqual([null, 1, 3]);
-        expect(endpoint.requests.map((request) => request.provedPassword)).toEqual([undefined, undefined, true]);
+        expect(endpoint.requests.map((request) => request.authenticated)).toEqual([undefined, undefined, true]);
         expect(endpoint.connectionsUsed()).toBe(1);
       });
     });
@@ -58,7 +58,7 @@ test.describe('NTLM auth', () => {
         await sendTo('wrong-password', 401);
 
         expect(endpoint.messageTypesSeen()).toEqual([null, 1, 3]);
-        expect(endpoint.requests.map((request) => request.provedPassword)).toEqual([undefined, undefined, false]);
+        expect(endpoint.requests.map((request) => request.authenticated)).toEqual([undefined, undefined, false]);
       });
     });
 
@@ -67,7 +67,7 @@ test.describe('NTLM auth', () => {
         await sendTo('inherited', 200);
 
         expect(endpoint.messageTypesSeen()).toEqual([null, 1, 3]);
-        expect(endpoint.requests.map((request) => request.provedPassword)).toEqual([undefined, undefined, true]);
+        expect(endpoint.requests.map((request) => request.authenticated)).toEqual([undefined, undefined, true]);
       });
     });
 
@@ -115,7 +115,7 @@ test.describe('NTLM auth', () => {
         await sendTo('https', 200);
 
         expect(endpoint.messageTypesSeen()).toEqual([null, 1, 3]);
-        expect(endpoint.requests.map((request) => request.provedPassword)).toEqual([undefined, undefined, true]);
+        expect(endpoint.requests.map((request) => request.authenticated)).toEqual([undefined, undefined, true]);
         expect(endpoint.connectionsUsed()).toBe(1);
       });
     });
