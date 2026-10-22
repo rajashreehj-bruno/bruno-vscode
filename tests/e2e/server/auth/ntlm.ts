@@ -185,7 +185,7 @@ const handleRequest = (password: string, requests: NtlmRequestRecord[]) =>
     }
   };
 
-export const startNtlmServer = async ({ password = 'pass', host = '127.0.0.1', tls = false } = {}): Promise<NtlmEndpoint> => {
+export const startNtlmServer = async ({ password = 'pass', host = '127.0.0.1', tls = false, port = 0 } = {}): Promise<NtlmEndpoint> => {
   const requests: NtlmRequestRecord[] = [];
   const sockets: Socket[] = [];
   const handler = handleRequest(password, requests);
@@ -205,12 +205,12 @@ export const startNtlmServer = async ({ password = 'pass', host = '127.0.0.1', t
     sockets.push(socket);
   });
 
-  await new Promise<void>((resolve) => listener.listen(0, host, resolve));
-  const { port } = listener.address() as AddressInfo;
+  await new Promise<void>((resolve) => listener.listen(port, host, resolve));
+  const { port: boundPort } = listener.address() as AddressInfo;
   const urlHost = host.includes(':') ? `[${host}]` : host;
 
   return {
-    baseUrl: `${tls ? 'https' : 'http'}://${urlHost}:${port}`,
+    baseUrl: `${tls ? 'https' : 'http'}://${urlHost}:${boundPort}`,
     requests,
     messageTypesSeen: () => requests.map((request) => request.type),
     connectionsUsed: () => new Set(requests.map((request) => request.socketId)).size,
