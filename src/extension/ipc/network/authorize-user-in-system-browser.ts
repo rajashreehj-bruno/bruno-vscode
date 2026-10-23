@@ -19,12 +19,12 @@ const AUTHORIZATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 // The hosted callback page routes to the editor named in a `bruno.<scheme>.` state prefix,
 // defaulting to `vscode://`, so VS Code's state needs no prefix.
 const STATE_SCHEME_PREFIX = 'bruno.';
-// URI scheme must be a lowercase letter, then letters/digits/`+`/`-`; no `.` since it delimits the prefix.
-const SAFE_URI_SCHEME = /^[a-z][a-z0-9+-]*$/;
+// Must match ALLOWED_SCHEMES on the hosted callback page; other schemes would fallback to vscode.
+const SAFE_URI_SCHEMES: string[] =['vscode-insiders', 'cursor', 'windsurf'];
 
 export function getStateWithEditorScheme(state?: string): string | undefined {
   const scheme = vscode.env.uriScheme;
-  if (!state || scheme === 'vscode' || !SAFE_URI_SCHEME.test(scheme)) {
+  if (!state || !SAFE_URI_SCHEMES.includes(scheme)) {
     return state;
   }
   return `${STATE_SCHEME_PREFIX}${scheme}.${state}`;

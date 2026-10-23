@@ -40,8 +40,10 @@ describe('withEditorScheme', () => {
     expect(getStateWithEditorScheme('abc123')).toBe('bruno.vscode-insiders.abc123');
   });
 
-  it('ignores schemes that are not safe to put in the page redirect', () => {
+  it('ignores schemes that are not in the allowlist', () => {
     env.uriScheme = 'java script';
+    expect(getStateWithEditorScheme('abc123')).toBe('abc123');
+    env.uriScheme = 'vscodium';
     expect(getStateWithEditorScheme('abc123')).toBe('abc123');
   });
 });

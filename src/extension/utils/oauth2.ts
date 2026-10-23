@@ -456,7 +456,7 @@ export const getOAuth2TokenUsingAuthorizationCode = async ({ request, collection
     autoFetchToken,
     additionalParameters
   } = oAuth;
-  // Always Bruno's hosted callback page; the editor to return to is carried in `state`
+  // Bruno's hosted callback page.
   const effectiveCallbackUrl = BRUNO_OAUTH2_CALLBACK_URL;
   const url = oAuth.accessTokenUrl;
 
