@@ -5,7 +5,7 @@ import {
   cancelAuthorization,
   getOAuth2AuthorizationCode,
   getOAuth2ImplicitToken,
-  withEditorScheme
+  getStateWithEditorScheme
 } from './authorize-user-in-system-browser';
 
 const env = vscode.env as unknown as { uriScheme: string; openExternal: ReturnType<typeof vi.fn> };
@@ -30,19 +30,19 @@ describe('withEditorScheme', () => {
   });
 
   it('leaves state unchanged in VS Code', () => {
-    expect(withEditorScheme('abc123')).toBe('abc123');
+    expect(getStateWithEditorScheme('abc123')).toBe('abc123');
   });
 
   it('prefixes state with the editor scheme in other editors', () => {
     env.uriScheme = 'cursor';
-    expect(withEditorScheme('abc123')).toBe('bruno.cursor.abc123');
+    expect(getStateWithEditorScheme('abc123')).toBe('bruno.cursor.abc123');
     env.uriScheme = 'vscode-insiders';
-    expect(withEditorScheme('abc123')).toBe('bruno.vscode-insiders.abc123');
+    expect(getStateWithEditorScheme('abc123')).toBe('bruno.vscode-insiders.abc123');
   });
 
   it('ignores schemes that are not safe to put in the page redirect', () => {
     env.uriScheme = 'java script';
-    expect(withEditorScheme('abc123')).toBe('abc123');
+    expect(getStateWithEditorScheme('abc123')).toBe('abc123');
   });
 });
 
@@ -87,6 +87,21 @@ describe('browser authorization state round-trip', () => {
     const result = getOAuth2AuthorizationCode(baseOptions);
 
     callback('code=the-code&state=abc123');
+    await expect(result).rejects.toThrow('state mismatch');
+  });
+
+  it('rejects a callback carrying another editor scheme in Cursor', async () => {
+    env.uriScheme = 'cursor';
+    const result = getOAuth2AuthorizationCode(baseOptions);
+
+    callback('code=the-code&state=bruno.vscode-insiders.abc123');
+    await expect(result).rejects.toThrow('state mismatch');
+  });
+
+  it('rejects a callback carrying a scheme-prefixed state in VS Code', async () => {
+    const result = getOAuth2AuthorizationCode(baseOptions);
+
+    callback('code=the-code&state=bruno.cursor.abc123');
     await expect(result).rejects.toThrow('state mismatch');
   });
 });
