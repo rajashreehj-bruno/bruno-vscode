@@ -190,7 +190,11 @@ export const buildCommonLocators = (frame: FrameLike) => ({
     inheritedMode: () => frame.locator('.inherit-mode-text'),
     bearerTokenEditor: () => frame.getByTestId('auth-bearer-token').locator('.CodeMirror'),
     basicUsernameEditor: () => frame.getByTestId('auth-basic-username').locator('.CodeMirror'),
-    basicPasswordEditor: () => frame.getByTestId('auth-basic-password').locator('.CodeMirror')
+    basicPasswordEditor: () => frame.getByTestId('auth-basic-password').locator('.CodeMirror'),
+    awsAccessKeyIdEditor: () => frame.getByTestId('auth-awsv4-access-key-id').locator('.CodeMirror'),
+    awsSecretAccessKeyEditor: () => frame.getByTestId('auth-awsv4-secret-access-key').locator('.CodeMirror'),
+    awsServiceEditor: () => frame.getByTestId('auth-awsv4-service').locator('.CodeMirror'),
+    awsRegionEditor: () => frame.getByTestId('auth-awsv4-region').locator('.CodeMirror')
   },
   paneTabs: {
     collectionSettingsTab: (key: string) => frame.getByTestId('collection-settings').locator(`[role="tab"].${key}`),
@@ -199,7 +203,9 @@ export const buildCommonLocators = (frame: FrameLike) => ({
   timeline: {
     lastItem: () => frame.getByTestId('timeline-entry').first(),
     itemHeader: (item: Locator) => item.getByTestId('timeline-item-header'),
-    requestPanel: (item: Locator) => item.getByTestId('timeline-panel-request')
+    requestPanel: (item: Locator) => item.getByTestId('timeline-panel-request'),
+    networkTab: (item: Locator) => item.getByRole('button', { name: 'Network', exact: true }),
+    networkPanel: (item: Locator) => item.getByTestId('timeline-panel-network')
   },
   body: {
     modeSelector: () => frame.locator('.body-mode-selector'),

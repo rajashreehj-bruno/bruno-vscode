@@ -4,9 +4,11 @@
  */
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { NtlmClient, type NtlmCredentials } from 'axios-ntlm';
 import FormData from 'form-data';
 import https from 'https';
 import { URL } from 'url';
+import { isSameOrigin } from '@usebruno/common/utils';
 import type { NetworkLogEntry } from '@bruno-types';
 import { getCookieStringForUrl, saveCookies } from '../../utils/cookies';
 import { preferencesUtil } from '../../store/preferences';
@@ -17,8 +19,9 @@ import type { CACertificatesCount } from './cert-utils';
 
 // Import digest auth helper using require due to type declaration issues in @usebruno/requests
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { addDigestInterceptor } = require('@usebruno/requests') as {
+const { addDigestInterceptor, handleNtlmRedirect } = require('@usebruno/requests') as {
   addDigestInterceptor: (axiosInstance: AxiosInstance, request: { digestConfig: { username?: string; password?: string } }) => void;
+  handleNtlmRedirect: (requestConfig: AxiosRequestConfig, fromUrl: string, redirectUrl: string, forwardAuthorizationHeader: boolean) => void;
 };
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
@@ -88,6 +91,11 @@ interface AxiosInstanceOptions {
     username?: string;
     password?: string;
   };
+  ntlmConfig?: {
+    username: string;
+    password: string;
+    domain?: string;
+  };
   collectionPath?: string;
   disableCookies?: boolean;
   timeline?: NetworkLogEntry[];
@@ -103,6 +111,7 @@ const createAxiosInstance = (options: AxiosInstanceOptions = {}): AxiosInstance 
     proxyConfig,
     requestMaxRedirects = 5,
     digestConfig,
+    ntlmConfig,
     collectionPath,
     disableCookies,
     timeline
@@ -298,6 +307,20 @@ const createAxiosInstance = (options: AxiosInstanceOptions = {}): AxiosInstance 
           headers: { ...originalRequest.headers }
         };
 
+        if (originalRequest.url) {
+          handleNtlmRedirect(requestConfig, originalRequest.url, redirectUrl, true);
+        }
+        
+        if (!isSameOrigin(originalRequest.url || '', redirectUrl)) {
+          for (const name of Object.keys(requestConfig.headers || {})) {
+            // Header names starting with x-amz- (any case), such as X-Amz-Date and X-Amz-Security-Token, belong to the AWS signature
+            if (/^x-amz-/i.test(name)) {
+              delete (requestConfig.headers as Record<string, unknown>)[name];
+            }
+          }
+          (requestConfig as { __skipAwsV4Sign?: boolean }).__skipAwsV4Sign = true;
+        }
+
         const statusCode = error.response.status;
         const originalMethod = (originalRequest.method || 'get').toLowerCase();
 
@@ -355,6 +378,20 @@ const createAxiosInstance = (options: AxiosInstanceOptions = {}): AxiosInstance 
   // Registered last so the challenge is logged as its own hop before this retries.
   if (digestConfig && digestConfig.username && digestConfig.password) {
     addDigestInterceptor(instance, { digestConfig });
+  }
+
+  if (ntlmConfig) {
+    const credentials: NtlmCredentials = {
+      username: ntlmConfig.username,
+      password: ntlmConfig.password,
+      domain: ntlmConfig.domain || ''
+    };
+    const ntlmClient = NtlmClient(credentials, {});
+    instance.defaults.adapter = (requestConfig) => ntlmClient.request({
+      ...requestConfig,
+      headers: { ...requestConfig.headers },
+      adapter: axios.getAdapter('http')
+    });
   }
 
   return instance;

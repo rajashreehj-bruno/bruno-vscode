@@ -162,6 +162,7 @@ declare module '@usebruno/common/utils' {
   export type BrunoVariableDataType = 'string' | 'number' | 'boolean' | 'object';
   export const BRUNO_VARIABLE_DATATYPES: readonly BrunoVariableDataType[];
   export function getDataTypeFromValue(value: unknown): BrunoVariableDataType;
+  export function isSameOrigin(url1: string, url2: string): boolean;
   // Mirrors @usebruno/common: value in / value out are `any` (coerced to the given data type).
   export function parseValueByDataType(value: any, dataType?: BrunoVariableDataType): any;
   export function valueToString(value: unknown, indent?: number): string;

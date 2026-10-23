@@ -19,9 +19,11 @@ const safeStringifyJSONIfNotString = (obj: any) => {
 const Request = ({
   collection,
   request,
-  item
+  item,
+  headers
 }: any) => {
-  let { headers, data, dataBuffer, error } = request || {};
+  let { data, dataBuffer, error } = request || {};
+
   if (!dataBuffer) {
     dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
   }

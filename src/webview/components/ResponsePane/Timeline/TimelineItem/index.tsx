@@ -8,6 +8,7 @@ import Status, { toNumericStatus } from './Common/Status/index';
 import { RelativeTime } from './Common/Time/index';
 import StyledWrapper from './StyledWrapper';
 import { getBadge } from '../entryMeta';
+import { getRequestHeaders } from 'utils/timeline';
 
 const TimelineItem = ({
   timestamp,
@@ -111,7 +112,7 @@ const TimelineItem = ({
             <div className="tl-panel">
               {visitedTabs.request && (
                 <div style={{ display: activeTab === 'request' ? 'block' : 'none' }} data-testid="timeline-panel-request">
-                  <Request request={request} item={item} collection={collection} />
+                  <Request request={request} item={item} collection={collection} headers={getRequestHeaders(response?.timeline)} />
                 </div>
               )}
               {visitedTabs.response && (
