@@ -1586,7 +1586,7 @@ class CollectionWatcher {
         await this.handleFileAddWithSender(filePath, collectionUid, collectionPath, sender);
       }
 
-      await this.loadDotEnvFiles(collectionPath, collectionUid, sender);
+      await this.loadEnvironments(collectionPath, collectionUid, sender);
 
       // Same batched-emit strategy as performInitialScan — one IPC +
       // Redux dispatch per ~500 files instead of one per file.
