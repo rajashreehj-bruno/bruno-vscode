@@ -8,6 +8,8 @@ import type { NetworkLogEntry } from '@bruno-types';
 import { AxiosError } from 'axios';
 import { createConnectionLoggingTransport, logConnection, logRequestHeaders } from './connection-log';
 
+const PROXY_MODE_MESSAGE = 'Proxy mode: off';
+
 const createRecorder = () => {
   const entries: Array<{ type: NetworkLogEntry['type']; message: string }> = [];
   return {
@@ -40,7 +42,8 @@ describe('logConnection', () => {
 
     logConnection(request, { host: 'catfact.ninja', port: 443, isHttps: true }, {
       log: recorder.log,
-      rejectUnauthorized: false,
+      proxyModeMessage: PROXY_MODE_MESSAGE,
+      tlsOptions: { rejectUnauthorized: false },
       caCertificatesCount: { root: 2, system: 1 }
     });
 
@@ -65,7 +68,7 @@ describe('logConnection', () => {
     const recorder = createRecorder();
     const request = new EventEmitter() as unknown as ClientRequest;
 
-    logConnection(request, { host: 'catfact.ninja', port: 443, isHttps: true }, { log: recorder.log });
+    logConnection(request, { host: 'catfact.ninja', port: 443, isHttps: true }, { log: recorder.log, proxyModeMessage: PROXY_MODE_MESSAGE });
 
     const socket = createConnectingSocket({
       authorized: true,
@@ -105,7 +108,7 @@ describe('logConnection', () => {
     const recorder = createRecorder();
     const request = new EventEmitter() as unknown as ClientRequest;
 
-    logConnection(request, { host: 'self.signed', port: 443, isHttps: true }, { log: recorder.log, rejectUnauthorized: false });
+    logConnection(request, { host: 'self.signed', port: 443, isHttps: true }, { log: recorder.log, proxyModeMessage: PROXY_MODE_MESSAGE, tlsOptions: { rejectUnauthorized: false } });
 
     const socket = createConnectingSocket({
       authorized: false,
@@ -124,7 +127,7 @@ describe('logConnection', () => {
     const recorder = createRecorder();
     const request = new EventEmitter() as unknown as ClientRequest;
 
-    logConnection(request, { host: '127.0.0.1', port: 8081, isHttps: false }, { log: recorder.log });
+    logConnection(request, { host: '127.0.0.1', port: 8081, isHttps: false }, { log: recorder.log, proxyModeMessage: PROXY_MODE_MESSAGE });
 
     const socket = createConnectingSocket({ remoteAddress: '127.0.0.1', remotePort: 8081 });
     request.emit('socket', socket);
@@ -140,7 +143,7 @@ describe('logConnection', () => {
     const recorder = createRecorder();
     const request = new EventEmitter() as unknown as ClientRequest;
 
-    logConnection(request, { host: 'catfact.ninja', port: 443, isHttps: false }, { log: recorder.log });
+    logConnection(request, { host: 'catfact.ninja', port: 443, isHttps: false }, { log: recorder.log, proxyModeMessage: PROXY_MODE_MESSAGE });
 
     request.emit('socket', Object.assign(new EventEmitter(), { connecting: false }));
 
@@ -149,7 +152,7 @@ describe('logConnection', () => {
 
   it('sends over the module the request options ask for, not the one the URL implies', () => {
     const recorder = createRecorder();
-    const transport = createConnectionLoggingTransport({ log: recorder.log });
+    const transport = createConnectionLoggingTransport({ log: recorder.log, proxyModeMessage: PROXY_MODE_MESSAGE });
     const httpSpy = vi.spyOn(http, 'request').mockReturnValue(createClientRequest());
     const httpsSpy = vi.spyOn(https, 'request').mockReturnValue(createClientRequest());
 
@@ -173,7 +176,7 @@ describe('logConnection', () => {
     const recorder = createRecorder();
     const request = new EventEmitter() as unknown as ClientRequest;
 
-    logConnection(request, { host: 'catfact.ninja', port: 443, isHttps: false }, { log: recorder.log });
+    logConnection(request, { host: 'catfact.ninja', port: 443, isHttps: false }, { log: recorder.log, proxyModeMessage: PROXY_MODE_MESSAGE });
 
     const socket = createConnectingSocket();
     // Without another listener, `emit('error')` would throw.
@@ -192,7 +195,7 @@ describe('logConnection', () => {
   it('aborts a request whose connect phase outlives the timeout', async () => {
     vi.useFakeTimers();
     const recorder = createRecorder();
-    const transport = createConnectionLoggingTransport({ log: recorder.log, timeout: 1_000 });
+    const transport = createConnectionLoggingTransport({ log: recorder.log, proxyModeMessage: PROXY_MODE_MESSAGE, timeout: 1_000 });
     const stalled = createClientRequest({}, { destroy: vi.fn() }) as unknown as ClientRequest & { destroy: Mock };
     const httpSpy = vi.spyOn(http, 'request').mockReturnValue(stalled);
 
@@ -213,7 +216,7 @@ describe('logConnection', () => {
   it('does not abort once the response has started', () => {
     vi.useFakeTimers();
     const recorder = createRecorder();
-    const transport = createConnectionLoggingTransport({ log: recorder.log, timeout: 1_000 });
+    const transport = createConnectionLoggingTransport({ log: recorder.log, proxyModeMessage: PROXY_MODE_MESSAGE, timeout: 1_000 });
     const responded = createClientRequest({}, { destroy: vi.fn() });
     const httpSpy = vi.spyOn(http, 'request').mockImplementation(((_options: unknown, callback: () => void) => {
       setTimeout(callback, 10);
@@ -235,7 +238,7 @@ describe('logConnection', () => {
     const recorder = createRecorder();
     const request = new EventEmitter() as unknown as ClientRequest;
 
-    logConnection(request, { host: 'nope.invalid', port: 443, isHttps: false }, { log: recorder.log });
+    logConnection(request, { host: 'nope.invalid', port: 443, isHttps: false }, { log: recorder.log, proxyModeMessage: PROXY_MODE_MESSAGE });
 
     const socket = createConnectingSocket();
     request.emit('socket', socket);

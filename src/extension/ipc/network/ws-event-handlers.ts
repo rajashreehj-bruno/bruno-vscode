@@ -238,7 +238,7 @@ const registerWsEventHandlers = (): void => {
       const { httpsAgentRequestFields } = certsAndProxyConfig;
 
       const sslOptions = {
-        rejectUnauthorized: false, // should be reverted back once we have a proper CA setup.
+        rejectUnauthorized: httpsAgentRequestFields.rejectUnauthorized !== false,
         ca: httpsAgentRequestFields.ca,
         cert: httpsAgentRequestFields.cert,
         key: httpsAgentRequestFields.key,

@@ -3,6 +3,11 @@
  *
  *   HTTPS + WSS : https://localhost:8083   (wss://localhost:8083)
  *   gRPC (TLS)  : grpcs://localhost:8084    service echo.EchoService/Echo
+ *
+ * Servers whose certificate Bruno does not trust (no client certificate needed):
+ *
+ *   HTTPS + WSS : https://localhost:8085   (wss://localhost:8085; POST /token is an OAuth2 token endpoint)
+ *   gRPC (TLS)  : grpcs://localhost:8086    service echo.EchoService/Echo
  */
 
 import * as fs from 'fs';
@@ -10,7 +15,7 @@ import * as https from 'https';
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import { WebSocketServer } from 'ws';
-import { CA_CERT, SERVER_CERT, SERVER_KEY, generateCerts } from './mtls-certs';
+import { CA_CERT, SERVER_CERT, SERVER_KEY, UNTRUSTED_SERVER_CERT, UNTRUSTED_SERVER_KEY, generateCerts } from './mtls-certs';
 import { GRPC_PROTO_PATH } from '../../../server/grpc';
 
 /** Describe the client certificate the peer presented. */
@@ -57,6 +62,65 @@ export function startMtlsServer(port: number): https.Server {
 
   server.listen(port, () => {
     console.log(`[mtls-server] Listening on https://localhost:${port} (wss - wss://localhost:8083)`);
+  });
+
+  return server;
+}
+
+/** HTTPS + WSS server whose certificate is signed by a CA the e2e VS Code does not trust. */
+export function startUntrustedHttpsServer(port: number): https.Server {
+  generateCerts();
+
+  const server = https.createServer(
+    { cert: fs.readFileSync(UNTRUSTED_SERVER_CERT), key: fs.readFileSync(UNTRUSTED_SERVER_KEY) },
+    (req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      // An OAuth2 token endpoint, for token requests made over the untrusted certificate.
+      if (req.url === '/token') {
+        res.end(JSON.stringify({ access_token: 'untrusted-token', token_type: 'Bearer', expires_in: 3600 }));
+        return;
+      }
+      res.end(JSON.stringify({ ok: true }));
+    }
+  );
+
+  const wss = new WebSocketServer({ server });
+  wss.on('connection', (socket) => {
+    socket.send(JSON.stringify({ type: 'welcome', untrusted: true }));
+  });
+
+  server.listen(port, () => {
+    console.log(`[untrusted-https-server] Listening on https://localhost:${port} (wss://localhost:${port})`);
+  });
+
+  return server;
+}
+
+/** gRPC server whose certificate is signed by a CA the e2e VS Code does not trust. */
+export function startUntrustedGrpcServer(port: number): grpc.Server {
+  generateCerts();
+
+  const proto = grpc.loadPackageDefinition(protoLoader.loadSync(GRPC_PROTO_PATH, { keepCase: true })) as any;
+
+  const server = new grpc.Server();
+  server.addService(proto.echo.EchoService.service, {
+    Echo: (call: any, callback: any) => {
+      callback(null, { message: `${call.request.message} (untrusted ok)` });
+    }
+  });
+
+  const credentials = grpc.ServerCredentials.createSsl(
+    null,
+    [{ private_key: fs.readFileSync(UNTRUSTED_SERVER_KEY), cert_chain: fs.readFileSync(UNTRUSTED_SERVER_CERT) }],
+    false
+  );
+
+  server.bindAsync(`localhost:${port}`, credentials, (err) => {
+    if (err) {
+      console.error('[untrusted-grpc-server] failed to bind:', err.message);
+      return;
+    }
+    console.log(`[untrusted-grpc-server] Listening on grpcs://localhost:${port}`);
   });
 
   return server;

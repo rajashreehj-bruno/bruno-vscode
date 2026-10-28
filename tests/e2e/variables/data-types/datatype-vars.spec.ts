@@ -126,15 +126,12 @@ test.describe('Data types in request variables', () => {
     fs.writeFileSync(path.join(folderDir, 'folder.bru'), FOLDER_ROOT_BRU, 'utf8');
     fs.writeFileSync(path.join(folderDir, 'Nested.bru'), NESTED_REQUEST_BRU, 'utf8');
 
+    const sidebarLocators = buildCommonLocators(sidebar).sidebar;
     await expandCollection(sidebar, collectionName);
-    const folderRow = sidebar
-      .locator('[data-testid="sidebar-collection-item-row"]')
-      .filter({ hasText: FOLDER_NAME });
+    const folderRow = sidebarLocators.collectionItem(FOLDER_NAME);
     await expect(folderRow).toBeVisible({ timeout: 15_000 });
     await folderRow.click();
-    await expect(
-      sidebar.locator('[data-testid="sidebar-collection-item-row"]').filter({ hasText: 'Nested' })
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(sidebarLocators.collectionItem('Nested')).toBeVisible({ timeout: 15_000 });
 
     // A click landing mid re-render never reaches the open-request handler.
     await page.waitForTimeout(1500);

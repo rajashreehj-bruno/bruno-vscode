@@ -4,7 +4,7 @@ import decomment from 'decomment';
 import { registerHandler, sendToWebview } from '../handlers';
 import { prepareRequest, BrunoRequest as PrepareRequestType } from './prepare-request';
 import { interpolateVars } from './interpolate-vars';
-import { createAxiosInstance, AxiosInstanceOptions } from './axios-instance';
+import { createAxiosInstance, axiosOptionsFromCertsAndProxyConfig, AxiosInstanceOptions } from './axios-instance';
 import { resolveAwsV4Credentials, addAwsV4Interceptor, AwsV4Config } from './awsv4auth-helper';
 import { saveCancelToken, deleteCancelToken, cancelTokens } from '../../utils/cancel-token';
 import { cookiesStore } from '../../store/cookies';
@@ -329,6 +329,23 @@ const executeRequest = async (
       interpolatedRequest.url = `http://${interpolatedRequest.url}`;
     }
 
+    // The client certificate is picked by the URL's host, so OAuth2 token requests resolve their own.
+    const certsAndProxyConfigFor = (url: string | undefined) => getCertsAndProxyConfig({
+      collectionUid: context.collectionUid,
+      collection: { promptVariables: request.promptVariables } as never,
+      request: {
+        url,
+        collectionVariables: context.collectionVariables,
+        folderVariables: context.folderVariables,
+        requestVariables: context.requestVariables
+      },
+      envVars: context.envVars || {},
+      runtimeVariables: context.runtimeVariables || {},
+      processEnvVars: context.processEnvVars || {},
+      collectionPath: context.collectionPath,
+      globalEnvironmentVariables: context.globalEnvironmentVariables || {}
+    });
+
     // Apply OAuth2 token to request (auto-fetch/refresh if needed)
     const authMode = ((interpolatedRequest as { auth?: { mode?: string } })?.auth)?.mode;
     if (authMode === 'oauth2' || (interpolatedRequest as { oauth2?: unknown }).oauth2) {
@@ -336,7 +353,7 @@ const executeRequest = async (
         envVars: context.envVars,
         runtimeVariables: context.runtimeVariables,
         processEnvVars: context.processEnvVars
-      });
+      }, certsAndProxyConfigFor);
     }
 
     const preparedRequest = prepareRequest(interpolatedRequest as unknown as PrepareRequestType);
@@ -370,23 +387,7 @@ const executeRequest = async (
 
     const preferences = getPreferences();
 
-    const certsAndProxyConfig = await getCertsAndProxyConfig({
-      collectionUid: context.collectionUid,
-      collection: { promptVariables: request.promptVariables } as never,
-      request: {
-        url: request.url,
-        collectionVariables: context.collectionVariables,
-        folderVariables: context.folderVariables,
-        requestVariables: context.requestVariables
-      },
-      envVars: context.envVars || {},
-      runtimeVariables: context.runtimeVariables || {},
-      processEnvVars: context.processEnvVars || {},
-      collectionPath: context.collectionPath,
-      globalEnvironmentVariables: context.globalEnvironmentVariables || {}
-    });
-
-    const { httpsAgentRequestFields, proxyMode: certProxyMode, proxyConfig: certProxyConfig } = certsAndProxyConfig;
+    const certsAndProxyConfig = await certsAndProxyConfigFor(request.url);
 
     const followRedirects = request.settings?.followRedirects ?? true;
     let requestMaxRedirects = request.settings?.maxRedirects ?? (request as unknown as { maxRedirects?: number }).maxRedirects ?? 5;
@@ -398,19 +399,7 @@ const executeRequest = async (
 
     const axiosOptions: AxiosInstanceOptions = {
       timeout: request.timeout || request.settings?.timeout || preferences?.request?.timeout || 0,
-      httpsAgentOptions: {
-        ...httpsAgentRequestFields
-      },
-      proxyMode: certProxyMode,
-      proxyConfig: certProxyMode === 'on' ? {
-        protocol: certProxyConfig.protocol,
-        hostname: certProxyConfig.hostname,
-        port: certProxyConfig.port || undefined,
-        auth: certProxyConfig.auth ? {
-          username: certProxyConfig.auth.username,
-          password: certProxyConfig.auth.password
-        } : undefined
-      } : undefined,
+      ...axiosOptionsFromCertsAndProxyConfig(certsAndProxyConfig),
       requestMaxRedirects,
       digestConfig: request.digestConfig,
       ntlmConfig: request.ntlmConfig,

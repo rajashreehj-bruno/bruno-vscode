@@ -115,7 +115,7 @@ const GraphQLRequestPane = ({
   );
 
   const indicators: Record<string, React.ReactNode> = useMemo(() => ({
-    auth: hasAuth ? <StatusDot dataTestId="auth" /> : null,
+    auth: hasAuth ? <StatusDot testId="auth" /> : null,
   }), [hasAuth]);
 
   const allTabs = useMemo(
@@ -178,8 +178,9 @@ const GraphQLRequestPane = ({
   ) : null;
 
   return (
-    <div className="flex flex-col h-full relative" data-testid="request-pane">
+    <div className="flex flex-col h-full relative" data-testid="graphql-request-pane">
       <ResponsiveTabs
+        testId="request-pane-tabs"
         tabs={allTabs}
         activeTab={requestPaneTab}
         onTabSelect={selectTab}

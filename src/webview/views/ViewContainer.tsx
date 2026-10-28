@@ -27,6 +27,7 @@ const CollectionOverview = lazy(() => import('components/CollectionSettings/Over
 const FolderSettings = lazy(() => import('components/FolderSettings'));
 const EnvironmentSettings = lazy(() => import('components/Environments/EnvironmentSettings'));
 const GlobalEnvironmentSettings = lazy(() => import('components/Environments/GlobalEnvironmentSettings'));
+const Preferences = lazy(() => import('components/Preferences'));
 
 // Simple form-only views stay eager — they're small and are the primary target
 // of the "open panel fast" optimization.
@@ -260,6 +261,10 @@ const ViewContainer: React.FC<ViewContainerProps> = ({ viewData }) => {
 
   if (viewType === 'global-environments') {
     return <GlobalEnvironmentSettings />;
+  }
+
+  if (viewType === 'preferences') {
+    return <Preferences />;
   }
 
   if (viewType === 'create-collection') {

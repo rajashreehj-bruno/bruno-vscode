@@ -16,6 +16,9 @@ export const CLIENT_KEY = path.join(CERTS_DIR, 'client.key');
 export const CLIENT_PFX = path.join(CERTS_DIR, 'client.pfx');
 export const UNTRUSTED_CLIENT_CERT = path.join(CERTS_DIR, 'untrusted-client.crt');
 export const UNTRUSTED_CLIENT_KEY = path.join(CERTS_DIR, 'untrusted-client.key');
+/** Server certificate signed by the untrusted CA, so Bruno rejects it while SSL verification is on. */
+export const UNTRUSTED_SERVER_CERT = path.join(CERTS_DIR, 'untrusted-server.crt');
+export const UNTRUSTED_SERVER_KEY = path.join(CERTS_DIR, 'untrusted-server.key');
 
 /** Passphrase protecting `client.pfx`. */
 export const PFX_PASSPHRASE = 'bruno';
@@ -25,13 +28,20 @@ export const CLIENT_SUBJECT_CN = 'bruno-client';
 
 const BASE_PORT = Number(process.env.PORT || 8081);
 
-// HTTPS + WSS share one port (PORT + 2); mTLS gRPC takes (PORT + 3).
+// HTTPS + WSS share one port (PORT + 2); mTLS gRPC takes (PORT + 3); the untrusted HTTPS + WSS server (PORT + 4);
+// the untrusted gRPC server (PORT + 5).
 export const MTLS_PORT = Number(process.env.MTLS_PORT) || BASE_PORT + 2;
 export const MTLS_GRPC_PORT = Number(process.env.MTLS_GRPC_PORT) || BASE_PORT + 3;
+export const UNTRUSTED_HTTPS_PORT = Number(process.env.UNTRUSTED_HTTPS_PORT) || BASE_PORT + 4;
+export const UNTRUSTED_GRPC_PORT = Number(process.env.UNTRUSTED_GRPC_PORT) || BASE_PORT + 5;
 
 export const MTLS_URL = `https://localhost:${MTLS_PORT}/`;
 export const MTLS_WS_URL = `wss://localhost:${MTLS_PORT}/`;
 export const MTLS_GRPC_URL = `grpcs://localhost:${MTLS_GRPC_PORT}`;
+export const UNTRUSTED_HTTPS_URL = `https://localhost:${UNTRUSTED_HTTPS_PORT}/`;
+export const UNTRUSTED_TOKEN_URL = `https://localhost:${UNTRUSTED_HTTPS_PORT}/token`;
+export const UNTRUSTED_WS_URL = `wss://localhost:${UNTRUSTED_HTTPS_PORT}/`;
+export const UNTRUSTED_GRPC_URL = `grpcs://localhost:${UNTRUSTED_GRPC_PORT}`;
 
 const CA_KEY = path.join(CERTS_DIR, 'ca.key');
 const UNTRUSTED_CA_CERT = path.join(CERTS_DIR, 'untrusted-ca.crt');
@@ -50,7 +60,8 @@ extendedKeyUsage = clientAuth
 const ALL_FILES = [
   CA_CERT, CA_KEY, SERVER_CERT, SERVER_KEY,
   CLIENT_CERT, CLIENT_KEY, CLIENT_PFX,
-  UNTRUSTED_CA_CERT, UNTRUSTED_CLIENT_CERT, UNTRUSTED_CLIENT_KEY
+  UNTRUSTED_CA_CERT, UNTRUSTED_CLIENT_CERT, UNTRUSTED_CLIENT_KEY,
+  UNTRUSTED_SERVER_CERT, UNTRUSTED_SERVER_KEY
 ];
 
 const openssl = (args: string[]): void => {
@@ -88,11 +99,12 @@ export function generateCerts(force = false): void {
     '-certfile', 'ca.crt', '-passout', `pass:${PFX_PASSPHRASE}`,
     '-certpbe', 'AES-256-CBC', '-keypbe', 'AES-256-CBC', '-macalg', 'sha256']);
 
-  // Untrusted CA + client.
+  // Untrusted CA + client, and a server certificate it signs.
   openssl(['genrsa', '-out', 'untrusted-ca.key', '2048']);
   openssl(['req', '-new', '-x509', '-days', '3650', '-key', 'untrusted-ca.key',
     '-out', 'untrusted-ca.crt', '-subj', '/CN=Untrusted CA']);
   signCert('untrusted-client', 'untrusted-client', 'client_ext', 'untrusted-ca');
+  signCert('untrusted-server', 'localhost', 'server_ext', 'untrusted-ca');
 
   for (const stale of fs.readdirSync(CERTS_DIR)) {
     if (stale.endsWith('.csr') || stale.endsWith('.srl')) {

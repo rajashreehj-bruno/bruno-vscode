@@ -32,6 +32,7 @@ export type ViewType =
   | 'export-collection'
   | 'clone-collection'     // Clone collection
   | 'import-collection'    // Import collection
+  | 'preferences'          // App preferences
   | 'empty';               // No content (blank state)
 
 /**
@@ -126,6 +127,10 @@ export const VIEW_CONFIGS: Record<ViewType, ViewConfig> = {
   },
   'import-collection': {
     viewType: 'import-collection',
+    requiresCollection: false,
+  },
+  'preferences': {
+    viewType: 'preferences',
     requiresCollection: false,
   },
   'empty': {

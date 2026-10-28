@@ -2,10 +2,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Page, Frame } from '@playwright/test';
 import { test, expect } from '../utils/fixtures';
+import { buildCommonLocators } from '../utils/page/locators';
 import {
   openBrunoSidebar,
   createCollection,
   createFolder,
+  openNewRequestPanel,
+  createRequest,
   openRequest,
   sendRequest,
   findCollectionDir,
@@ -72,7 +75,7 @@ test.describe('Script errors in the response pane', () => {
 
     await expect(card.locator('[data-testid="script-error-source-label"]')).toContainText('Request');
     await expect(card.locator('[data-testid="script-error-file-path"]')).toHaveText('Boom.bru');
-    await expect(card.locator('[data-testid="code-line-error"]')).toContainText('bru.setEnvVar("Bad Name", "x")');
+    await expect(card.getByTestId(/code-line-error-/)).toContainText('bru.setEnvVar("Bad Name", "x")');
 
     await expect(card.locator('[data-testid="script-error-stack"]')).toHaveCount(0);
     await card.locator('[data-testid="script-error-stack-toggle"]').click();
@@ -188,7 +191,7 @@ test.describe('Script errors in the response pane', () => {
     await expect(card).toBeVisible({ timeout: 15_000 });
     await expect(card.locator('[data-testid="script-error-source-label"]')).toContainText('Collection');
     await expect(card.locator('[data-testid="script-error-file-path"]')).toHaveText('collection.bru');
-    await expect(card.locator('[data-testid="code-line-error"]')).toContainText("throw new Error('boom from collection')");
+    await expect(card.getByTestId(/code-line-error-/)).toContainText("throw new Error('boom from collection')");
   });
   test('an empty url with no script at all reports the url', async ({ page, tmpDir }) => {
     const sidebar = await openBrunoSidebar(page);
@@ -263,13 +266,10 @@ test.describe('Script errors in the response pane', () => {
     await createCollection(page, sidebar, collectionName, tmpDir, 'bru');
     await createFolder(sidebar, collectionName, 'sub');
 
-    const collectionDir = findCollectionDir(tmpDir);
-    fs.writeFileSync(path.join(collectionDir, 'sub', 'Boom.bru'), [
-      'meta {', '  name: Boom', '  type: http', '  seq: 1', '}', '',
-      'get {', `  url: ${TEST_SERVER}/capture`, '  body: none', '  auth: inherit', '}', ''
-    ].join('\n'), 'utf8');
+    const newRequestPanel = await openNewRequestPanel(page, sidebar, 'sub', true);
+    await createRequest(page, newRequestPanel, sidebar, collectionName, 'Boom', `${TEST_SERVER}/capture`);
 
-    await sidebar.locator('[data-testid="sidebar-collection-item-row"]').filter({ hasText: 'sub' }).click();
+    await buildCommonLocators(sidebar).sidebar.collectionItem('sub').click();
 
     const settings = await frameWith(page, '[data-testid="folder-settings"]');
     await settings.locator('[role="tab"]').filter({ hasText: 'Script' }).first().click();
@@ -287,7 +287,7 @@ test.describe('Script errors in the response pane', () => {
     await expect(card.locator('[data-testid="script-error-title"]')).toHaveText('Post-Response Script Error');
     await expect(card.locator('[data-testid="script-error-source-label"]')).toContainText('Folder');
     await expect(card.locator('[data-testid="script-error-file-path"]')).toHaveText('sub/folder.bru');
-    await expect(card.locator('[data-testid="code-line-error"]')).toContainText('boom from the folder draft');
+    await expect(card.getByTestId(/code-line-error-/)).toContainText('boom from the folder draft');
 
     await card.locator('[data-testid="script-error-file-path"]').click();
     await expect(folderScript).toBeVisible({ timeout: 15_000 });
@@ -314,8 +314,7 @@ test.describe('Script errors in the response pane', () => {
       'get {', `  url: ${TEST_SERVER}/capture`, '  body: none', '  auth: inherit', '}', ''
     ].join('\n'), 'utf8');
 
-    await sidebar.locator('[data-testid="sidebar-collection-item-row"]').filter({ hasText: 'sub' })
-      .locator('[data-testid="folder-chevron"]').click();
+    await buildCommonLocators(sidebar).sidebar.folderChevron('sub').click();
 
     const editor = await openRequest(page, sidebar, collectionName, 'Boom');
     await sendRequest(editor);

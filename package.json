@@ -229,6 +229,12 @@
         "category": "Bruno"
       },
       {
+        "command": "bruno.openPreferences",
+        "title": "Open Preferences",
+        "category": "Bruno",
+        "icon": "$(settings-gear)"
+      },
+      {
         "command": "bruno.openEnvironmentSettings",
         "title": "Open Environment Settings",
         "category": "Bruno"

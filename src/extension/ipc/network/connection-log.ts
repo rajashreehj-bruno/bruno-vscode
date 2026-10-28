@@ -12,9 +12,10 @@ type LogEntry = (type: NetworkLogEntry['type'], message: string) => void;
 export interface ConnectionLogOptions {
   log: LogEntry;
   timeout?: number;
-  rejectUnauthorized?: boolean;
   caCertificatesCount?: Partial<CACertificatesCount>;
   proxyModeMessage: string;
+  /** Set on every https request, since VS Code's proxy agent drops the ones set on the agent. */
+  tlsOptions?: https.AgentOptions;
 }
 
 export const sslValidationMessage = (rejectUnauthorized?: boolean): string =>
@@ -93,10 +94,10 @@ export const logRequestHeaders = (request: ClientRequest, log: LogEntry): void =
 export const logConnection = (
   request: ClientRequest,
   { host, port, isHttps }: ConnectionTarget,
-  { log, rejectUnauthorized, caCertificatesCount }: ConnectionLogOptions
+  { log, tlsOptions, caCertificatesCount }: ConnectionLogOptions
 ): void => {
   if (isHttps) {
-    log('info', sslValidationMessage(rejectUnauthorized));
+    log('info', sslValidationMessage(tlsOptions?.rejectUnauthorized));
   }
 
   request.on('socket', (socket: Socket) => {
@@ -160,7 +161,8 @@ export const createConnectionLoggingTransport = (options: ConnectionLogOptions) 
     const transport = isHttps ? https : http;
 
     let clearRequestTimeout: (() => void) | undefined;
-    const request = transport.request(requestOptions, (response) => {
+    const sendOptions = isHttps ? { ...requestOptions, ...options.tlsOptions } : requestOptions;
+    const request = transport.request(sendOptions, (response) => {
       clearRequestTimeout?.();
       callback?.(response);
     });
